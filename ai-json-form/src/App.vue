@@ -89,10 +89,13 @@ socket.on('server_command', (data) => {
     case 'ai_response':
       inferencing.value = true
       ymlCode.value += data.data
-      document.querySelector('.el-form').scrollIntoView({
-        block: 'end',
-        behavior: 'instant'
-      })
+      try {
+        document.querySelector('.el-form').scrollIntoView({
+          block: 'end',
+          behavior: 'instant'
+        })
+      } catch (e) {
+      }
       break
     case 'ai_response_done':
       ElNotification({
