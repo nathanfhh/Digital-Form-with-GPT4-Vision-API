@@ -72,17 +72,29 @@ socket.on('server_command', (data) => {
       break
   }
 })
-
-ymlCode.value = jsyaml.dump(schema.value)
+const parseYAML = (data) => {
+  return jsyaml.load(data);
+}
+const isLastLineEqualsTo = (code, target) => {
+  let lines = code.trim().split('\n')
+  return lines[lines.length - 1].trim() === target
+}
 const onCodeChange = (code) => {
-  // validate yaml, if its valid, update schema
   try {
-    const currentCode = jsyaml.load(code)
-    if (!currentCode) return;
-    ajv.compile(currentCode)
-    schema.value = currentCode;
+    let result = parseYAML(code)
+    ajv.compile(result)
+    lastYamlCode = result // make sure the lastYamlCode is always valid
+    if (!inferencing.value) {
+      schema.value = result
+    }
   } catch (e) {
     ajv.errors = []
+    if (lastYamlCode && !isLastLineEqualsTo(code, 'items:')) {
+      // the VueForm will failed to the type of array not defining items
+      console.log("syncContent", lastYamlCode);
+      schema.value = lastYamlCode;
+      lastYamlCode = null;
+    }
   }
   // Scroll to the bottom of CodeMirror
   if (!inferencing.value) return;
@@ -151,7 +163,7 @@ watch(isMock, (newVal) => {
       <div style="height: 60vh">
         <el-tabs v-model="activeName">
           <el-tab-pane label="Schema YAML" name="schemaDefYaml">
-            <div style="height: 60vh">
+            <div style="height: 58vh">
               <Codemirror ref="myCm" v-model:value="ymlCode" :options="cmOptions" @change="onCodeChange" />
             </div>
           </el-tab-pane>
