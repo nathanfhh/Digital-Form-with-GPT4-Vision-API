@@ -7,6 +7,7 @@ from pdf2image import convert_from_path
 
 from app import socketio
 from app.ai_helper import inference
+from app.utils import RUNTIME_DIR
 
 
 @socketio.on("join", namespace="/openai")
@@ -30,7 +31,7 @@ def upload_pdf_and_generate_yaml(data):
         {
             "cmd": "ai_response_done",
             "data": inference(
-                f"/tmp/pdf/{session}-0.jpg",
+                RUNTIME_DIR / f"{session}-0.jpg",
                 pdf_text,
                 socketio,
                 is_mock=data.get("is_mock", False) is True
@@ -42,25 +43,25 @@ def upload_pdf_and_generate_yaml(data):
 
 
 def cleanup_intermediate_files(session):
-    for file in Path("/tmp/pdf").glob(f"{session}*"):
+    for file in RUNTIME_DIR.glob(f"{session}*"):
         file.unlink()
 
 
 def extract_first_page_text(session, save_to_disk=False):
-    pdf_text = PdfReader(f"/tmp/pdf/{session}.pdf").pages[0].extract_text()
+    pdf_text = PdfReader(RUNTIME_DIR / f"{session}.pdf").pages[0].extract_text()
     if save_to_disk:
-        with open(f"/tmp/pdf/{session}.txt", "w") as f:
+        with open(RUNTIME_DIR / f"{session}.txt", "w") as f:
             f.write(pdf_text)
     return pdf_text
 
 
 def convert_first_page_to_jpg(session):
-    images = convert_from_path(f"/tmp/pdf/{session}.pdf")
-    images[0].save(f'/tmp/pdf/{session}-0.jpg', 'JPEG')
+    images = convert_from_path(RUNTIME_DIR / f"{session}.pdf")
+    images[0].save(RUNTIME_DIR / f'{session}-0.jpg', 'JPEG')
 
 
 def save_pdf_to_disk(data, session):
     pdf_data = data.get("data", "").split("base64,")[1]
     pdf_bytes = base64.b64decode(pdf_data)
-    with open(f"/tmp/pdf/{session}.pdf", "wb") as f:
+    with open(RUNTIME_DIR / f"{session}.pdf", "wb") as f:
         f.write(pdf_bytes)
