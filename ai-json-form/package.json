@@ -1,0 +1,28 @@
+{
+  "name": "ai-json-forms",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 0.0.0.0 --mode development",
+    "build": "vite build --mode production",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@jsonforms/core": "^3.1.0",
+    "@jsonforms/vue": "^3.1.0",
+    "@jsonforms/vue-vanilla": "^3.1.0",
+    "@lljj/vue3-form-core": "^1.19.0",
+    "@lljj/vue3-form-element": "^1.19.0",
+    "@vitejs/plugin-vue": "^4.5.0",
+    "codemirror-editor-vue3": "^2.4.1",
+    "element-plus": "^2.4.3",
+    "js-yaml": "^4.1.0",
+    "pinia": "^2.1.7",
+    "socket.io-client": "^4.7.2",
+    "vite": "^5.0.4",
+    "vue": "^3.3.9",
+    "vue-router": "^4.2.5",
+    "vue-toastification": "^2.0.0-rc.5"
+  }
+}
