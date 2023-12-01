@@ -7,7 +7,12 @@ Inspired by:
 1. https://github.com/abi/screenshot-to-code
 2. https://github.com/SawyerHood/draw-a-ui
 
-Both repositories demonstrate that the GPT4 Vision API can be used to generate a UI from an image and can recognize the patterns and structure of the layout provided in the image.
+Both repositories demonstrate that the GPT4 Vision API can be used to generate a UI from an image and can recognize the
+patterns and structure of the layout provided in the image.
+
+## Demo
+
+[![Watch the Demo Video](https://img.youtube.com/vi/HN_RxSpQXDg/maxresdefault.jpg)](https://youtu.be/HN_RxSpQXDg)
 
 ## Frontend
 
@@ -46,6 +51,8 @@ export OPENAI_API_KEY=
 export OPENAI_ORG=
 ```
 
+> If you plan to use the Mock response only, you should set OPENAI_API_KEY to any value.
+
 4. Run
 
 ```sh
@@ -53,7 +60,9 @@ python main.py
 ```
 
 ## Disclaimer
-I am new to Vue, so the code might not be the best practice. I am still learning and improving. Should you have any suggestions, please feel free to PR.
+
+I am new to Vue, so the code might not be the best practice. I am still learning and improving. Should you have any
+suggestions, please feel free to PR.
 
 ## Flow Explain
 
