@@ -1,15 +1,15 @@
 # PDF to Digital Form using GPT4 Vision API
 
-A POC for GPT4 Vision APT to generate digital form from an Image using JSONForms from `https://jsonforms.io/`
+A POC that uses GPT4 Vision APT to generate digital form from an Image using JSONForms from `https://jsonforms.io/`
 
 Inspired by:
 1. https://github.com/abi/screenshot-to-code
 2. https://github.com/SawyerHood/draw-a-ui
 
 ## Frontend
-1. `cd` into directory
+1. `cd` into frontend directory
 ```sh
-cd frontend
+cd ai-json-form
 ```
 2. Install Packages and run
 ```sh
