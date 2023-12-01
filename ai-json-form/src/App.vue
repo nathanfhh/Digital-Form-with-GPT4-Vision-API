@@ -22,7 +22,7 @@ const pdfFileList = ref([])
 const pdfImageUrl = ref('')
 const inferencing = ref(false)
 const activeName = ref('schemaDefYaml')
-const isMock = ref(true);
+const isMock = ref(localStorage.getItem('isMock') === 'true');
 const schemaVersion = ref(0)
 
 let socket = io(`${import.meta.env.VITE_APP_BACKEND_URL}/openai`, {
@@ -125,6 +125,9 @@ const selectText = (element) => {
     window.getSelection().addRange(range)
   }
 }
+watch(isMock, (newVal) => {
+  localStorage.setItem('isMock', newVal)
+})
 </script>
 <template>
   <div class="container">
