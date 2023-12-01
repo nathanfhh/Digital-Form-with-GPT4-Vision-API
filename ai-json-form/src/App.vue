@@ -107,6 +107,7 @@ socket.on('server_command', (data) => {
       inferencing.value = false
       ymlCode.value = ''
       ymlCode.value = data.data
+      schemaVersion.value += 1
       break
     case 'pdf_screenshot':
       inferencing.value = true
@@ -174,18 +175,12 @@ const selectText = (element) => {
   <div class="container">
     <div class="col-left">
       <div class="upload-thumbnail">
-        <el-upload
-          ref="uploadPdf"
-          action
-          accept=".pdf"
-          :limit="1"
-          :on-exceed="handleExceed"
-          :before-upload="pdfUploadLogic"
-          :file-list="pdfFileList"
-          :auto-upload="true"
-        >
+        <el-upload ref="uploadPdf" action accept=".pdf" :limit="1" :on-exceed="handleExceed"
+          :before-upload="pdfUploadLogic" :file-list="pdfFileList" :auto-upload="true"
+          :http-request="(x) => x.onSuccess({})">
           <div slot="trigger" class="icon">
-            <img style="width: 40px" src="./assets/upload.svg" alt="" />
+            <img style="width: 40px" src="./assets/upload.svg" alt="" /><br>
+            <small>點擊上傳PDF</small>
           </div>
         </el-upload>
         <div id="monitor">
@@ -219,7 +214,7 @@ const selectText = (element) => {
       </div>
     </div>
     <div class="col-right">
-      <VueForm v-model="formData" :schema="schema"> </VueForm>
+      <VueForm :key="schemaVersion" v-model="formData" :schema="schema"></VueForm>
     </div>
   </div>
 </template>
