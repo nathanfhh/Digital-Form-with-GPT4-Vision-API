@@ -25,9 +25,11 @@ const activeName = ref('schemaDefYaml')
 const isMock = ref(localStorage.getItem('isMock') === 'true');
 const schemaVersion = ref(0)
 
+let lastYamlCode = "";
 let socket = io(`${import.meta.env.VITE_APP_BACKEND_URL}/openai`, {
   transports: ['websocket', 'polling']
 })
+
 socket.on('connect', () => {
   socket.emit('join', {})
 })
@@ -103,7 +105,6 @@ const pdfUploadLogic = (file) => {
       data: reader.result,
       is_mock: isMock.value
     })
-
     ElNotification({
       title: '成功上傳PDF',
       message: '成功上傳PDF',
