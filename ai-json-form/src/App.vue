@@ -9,8 +9,6 @@ import 'codemirror/mode/yaml/yaml.js'
 import 'codemirror/addon/lint/lint'
 import 'codemirror/addon/lint/yaml-lint'
 import 'codemirror/theme/dracula.css'
-// import 'codemirror/theme/midnight.css'
-// import 'codemirror/theme/railscasts.css'
 
 // 括號/標籤 匹配
 import 'codemirror/addon/edit/matchbrackets'
@@ -42,55 +40,7 @@ import jsyaml from 'js-yaml'
 import { ElNotification } from 'element-plus'
 
 window.jsyaml = jsyaml
-const schema = ref({
-  title: '测试注册表单',
-  description: 'A simple form example.',
-  type: 'object',
-  required: ['firstName', 'lastName'],
-  'ui:order': ['lastName', 'firstName', '*', 'password'],
-  properties: {
-    firstName: {
-      type: 'string',
-      title: 'First name',
-      default: 'Jun'
-    },
-    lastName: {
-      type: 'string',
-      title: 'Last name',
-      'ui:options': {
-        description: '请输入你的姓'
-      },
-      'err:required': '必须输入Last Name'
-    },
-    price: {
-      type: 'string',
-      description: '最多输入两位小数点，最大值 999999.99',
-      title: '价格',
-      format: 'price'
-    },
-    age: {
-      type: 'integer',
-      title: 'Age',
-      maximum: 80,
-      minimum: 16
-    },
-    bio: {
-      type: 'string',
-      title: 'Bio',
-      minLength: 10
-    },
-    password: {
-      type: 'string',
-      title: 'Password',
-      minLength: 3
-    },
-    telephone: {
-      type: 'string',
-      title: 'Telephone',
-      minLength: 10
-    }
-  }
-})
+const schema = ref(basicSchema)
 const formData = ref()
 const cmOptions = ref({
   tabSize: 4,
@@ -271,6 +221,7 @@ const selectText = (element) => {
   height: 98vh;
   justify-content: space-between;
 }
+
 .col-left {
   width: 40vw;
   height: 90vh;
@@ -278,19 +229,23 @@ const selectText = (element) => {
   flex-direction: column;
   justify-content: space-between;
 }
+
 .hide {
   display: none;
 }
+
 .col-right {
   width: 50vw;
   max-height: 95vh;
   overflow-y: scroll;
 }
+
 .pdfImage {
   width: 100%;
   max-height: 30vh;
   object-fit: contain;
 }
+
 .upload-thumbnail {
   display: flex;
   justify-content: space-between;
@@ -301,6 +256,7 @@ const selectText = (element) => {
   padding: 0 10px;
   margin-bottom: 10px;
 }
+
 .scan {
   width: 100%;
   height: 10px;
@@ -315,16 +271,19 @@ const selectText = (element) => {
 }
 
 @keyframes scan {
+
   0%,
   100% {
     -webkit-transform: translateY(0);
     transform: translateY(0);
   }
+
   100% {
     -webkit-transform: translateY(calc(-10px + 30vh));
     transform: translateY(calc(-10px + 30vh));
   }
 }
+
 #monitor {
   margin: auto;
   position: relative;
