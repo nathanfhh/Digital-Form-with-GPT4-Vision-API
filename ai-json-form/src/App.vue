@@ -67,6 +67,8 @@ const pdfFileList = ref([])
 const pdfImageUrl = ref('')
 const inferencing = ref(false)
 const activeName = ref('schemaDefYaml')
+const isMock = ref(true);
+const schemaVersion = ref(0)
 
 let socket = io(`${import.meta.env.VITE_APP_BACKEND_URL}/openai`, {
   transports: ['websocket', 'polling']
@@ -139,7 +141,8 @@ const pdfUploadLogic = (file) => {
   let reader = new FileReader()
   reader.onload = () => {
     socket.emit('upload_pdf', {
-      data: reader.result
+      data: reader.result,
+      is_mock: isMock.value
     })
 
     ElNotification({
@@ -190,19 +193,9 @@ const selectText = (element) => {
 
       <div style="height: 60vh">
         <el-tabs v-model="activeName">
-          <el-tab-pane label="Schema Yaml" name="schemaDefYaml">
+          <el-tab-pane label="Schema YAML" name="schemaDefYaml">
             <div style="height: 60vh">
-              <Codemirror
-                ref="myCm"
-                v-model:value="ymlCode"
-                :options="cmOptions"
-                @change="onCodeChange"
-              />
-            </div>
-          </el-tab-pane>
-          <el-tab-pane label="Form Data" name="formData">
-            <div style="height: 60vh; overflow: scroll;">
-              <pre>{{ formData }}</pre>
+              <Codemirror ref="myCm" v-model:value="ymlCode" :options="cmOptions" @change="onCodeChange" />
             </div>
           </el-tab-pane>
           <el-tab-pane label="Schema JSON" name="schemaDefJson">
@@ -210,8 +203,16 @@ const selectText = (element) => {
               <pre @click="selectText($event.target)">{{ schema }}</pre>
             </div>
           </el-tab-pane>
+          <el-tab-pane label="Form Data" name="formData">
+            <div style="height: 60vh; overflow: scroll;">
+              <pre @click="selectText($event.target)">{{ formData }}</pre>
+            </div>
+          </el-tab-pane>
+          <el-tab-pane label="Settings" name="settings">
+            <el-switch v-model="isMock" active-text="Mock Response" inactive-text="Use AI Model" />
+          </el-tab-pane>
         </el-tabs>
-        
+
       </div>
     </div>
     <div class="col-right">
