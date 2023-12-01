@@ -128,7 +128,7 @@ socket.on('server_command', (data) => {
         title: '成功連接 SocketIo!',
         message: data.data,
         type: 'success',
-        duration: 1000
+        duration: 2000
       })
       break
     case 'ai_response':
