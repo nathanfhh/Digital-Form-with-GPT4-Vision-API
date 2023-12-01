@@ -11,7 +11,6 @@ with open(CURRENT_DIR / "example.yml", "r") as f:
 with open(CURRENT_DIR / "mock.txt", "r") as mock_file:
     MOCKED_RESPONSE = mock_file.readlines()
 
-
 SYSTEM_PROMPT = """
 You are an expert in building digital forms using JSONForms from https://jsonforms.io/.
 You take a screenshot of a paper form from a client, and then you use JSONForms to build a digital form.
@@ -20,6 +19,7 @@ IMPORTANT:
   1. You MUST use the text in the screenshot and DO NOT come up with your own idea. The form should be read top to bottom, left to right. Read it as if you are the filler of the form and read it clearly and carefully.
   2. The name of the JSONForms will be the title in the screenshot.
   3. In the screenshot if it's a square, it is highly likely to be a CHECKBOX question. If you subsequently find out that it is a checkbox, you should also consider if an option is exclusive, e.g `無` and `以上皆無` in the options.
+  4. The indentation of the YAML definition file should be 2 spaces.
 
 Return only the full YAML definition of the form.
 Do not include markdown "```" or "```yaml" at the start or end.
@@ -71,14 +71,18 @@ def stream_openai_response(messages, socketio_obj, is_mock):
             "temperature": 0,
         })
     full_response = ""
+    buffer = ""
     for chunk in response:
         content = chunk if is_mock else (chunk.choices[0].delta.content or "")
         full_response += content
-        socketio_obj.emit(
-            "server_command",
-            {"cmd": "ai_response", "data": content},
-            namespace="/openai"
-        )
+        buffer += content
+        if buffer and buffer.endswith("\n"):
+            socketio_obj.emit(
+                "server_command",
+                {"cmd": "ai_response", "data": buffer},
+                namespace="/openai"
+            )
+            buffer = ""
     return full_response
 
 
