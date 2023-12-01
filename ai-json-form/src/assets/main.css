@@ -3,5 +3,5 @@ body {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 10px 0 10px 0;
+  overflow: hidden;
 }
