@@ -1,5 +1,6 @@
 <script setup>
 import VueForm from '@lljj/vue3-form-element'
+import { createAjvInstance } from './ajvVueForm.js';
 import { ref } from 'vue'
 import { io } from 'socket.io-client'
 import Codemirror from 'codemirror-editor-vue3'
@@ -37,11 +38,13 @@ import 'codemirror/addon/dialog/dialog.css'
 import 'codemirror/addon/search/searchcursor.js'
 import 'codemirror/addon/search/search.js'
 import jsyaml from 'js-yaml'
-import { ElNotification } from 'element-plus'
+import { ElNotification, ElSwitch } from 'element-plus'
+import { basicSchema } from './schema.js'
 
 window.jsyaml = jsyaml
 const schema = ref(basicSchema)
 const formData = ref()
+const ajv = createAjvInstance()
 const cmOptions = ref({
   tabSize: 4,
   mode: 'text/yaml',
@@ -111,13 +114,16 @@ ymlCode.value = jsyaml.dump(schema.value)
 const onCodeChange = (code) => {
   // validate yaml, if its valid, update schema
   try {
-    const json = jsyaml.load(code)
-    schema.value = json
-  } catch (e) {}
+    const currentCode = jsyaml.load(code)
+    if (!currentCode) return;
+    ajv.compile(currentCode)
+    schema.value = currentCode;
+  } catch (e) {
+    ajv.errors = []
+  }
   // Scroll to the bottom of CodeMirror
   if (!inferencing.value) return;
   myCm.value.cminstance.scrollTo(0, myCm.value.cminstance.getScrollInfo().height)
-
 }
 
 const handleExceed = () => {
