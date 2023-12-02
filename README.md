@@ -14,7 +14,9 @@ patterns and structure of the layout provided in the image.
 
 [![Watch the Demo Video](https://img.youtube.com/vi/HN_RxSpQXDg/maxresdefault.jpg)](https://youtu.be/HN_RxSpQXDg)
 
-## Frontend
+## Running using Local Environment
+
+### Frontend
 
 1. `cd` into frontend directory
 
@@ -29,7 +31,7 @@ npm install
 npm run dev
 ```
 
-## Backend
+### Backend
 
 1. `cd` into directory
 
@@ -59,6 +61,19 @@ export OPENAI_ORG=
 python main.py
 ```
 
+## Running using Docker
+1. export the environment variables
+```sh
+echo "OPENAI_API_KEY=YOUR_API_KEY" > .env
+# The following is optional
+echo "OPENAI_ORG=YOUR_ORG" >> .env
+```
+
+2. Run the docker-compose
+```sh
+docker-compose up --build
+
+```
 ## Disclaimer
 
 I am new to Vue, so the code might not be the best practice. I am still learning and improving. Should you have any
