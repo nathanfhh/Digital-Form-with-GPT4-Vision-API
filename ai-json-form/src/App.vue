@@ -1,9 +1,7 @@
 <script setup>
-import VueForm from '@lljj/vue3-form-element'
 import { createAjvInstance } from './ajvVueForm.js';
-import { ref, watch } from 'vue'
+import { ref, watch, defineAsyncComponent } from 'vue'
 import { io } from 'socket.io-client'
-import Codemirror from 'codemirror-editor-vue3'
 
 import jsyaml from 'js-yaml'
 import { ElNotification, ElSwitch } from 'element-plus'
@@ -12,6 +10,8 @@ import { codeMirrorConfig } from './codeMirror.js'
 
 
 window.jsyaml = jsyaml
+const VueForm = defineAsyncComponent(() => import('@lljj/vue3-form-element'));
+const Codemirror = defineAsyncComponent(() => import('codemirror-editor-vue3'));
 const schema = ref(basicSchema)
 const formData = ref()
 const ajv = createAjvInstance()
