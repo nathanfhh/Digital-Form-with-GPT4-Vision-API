@@ -163,8 +163,8 @@ watch(isDetailHigh, (newVal) => {
     <el-col :span="12">
       <el-row class="operation">
         <el-col :span="8" class="upload-container">
-          <el-upload :disabled="inferencing" ref="uploadPdf" action accept=".pdf" :limit="1"
-            :on-exceed="handleExceed" :before-upload="pdfUploadLogic" :file-list="pdfFileList" :auto-upload="true"
+          <el-upload :disabled="inferencing" ref="uploadPdf" action accept=".pdf" :limit="1" :on-exceed="handleExceed"
+            :before-upload="pdfUploadLogic" :file-list="pdfFileList" :auto-upload="true"
             :http-request="(x) => x.onSuccess({})" :show-file-list="false">
             <div slot="trigger" class="icon">
               <img style="width: 40px" src="./assets/upload.svg" alt="" /><br>
@@ -175,8 +175,8 @@ watch(isDetailHigh, (newVal) => {
         <el-col :span="16">
           <div id="monitor">
             <div :class="inferencing ? 'scan' : ''"></div>
-            <el-carousel :interval="3500" type="card" style="width: 100%;">
-              <el-carousel-item v-for="url in pdfImageUrl" :key="url" height="100%" style="" arrow="never">
+            <el-carousel :interval="3500" type="card" style="width: 100%;" :autoplay="true">
+              <el-carousel-item v-for="url in pdfImageUrl" :key="url" height="100%">
                 <img :src="url" :class="pdfImageUrl ? 'pdfImage' : 'hide'" alt="pdf screenshot" />
               </el-carousel-item>
             </el-carousel>
@@ -223,17 +223,14 @@ watch(isDetailHigh, (newVal) => {
   border: 1px solid #ccc;
 }
 
-
 .hide {
   display: none;
 }
 
-
-
 .pdfImage {
   width: auto;
   border: 1px solid #452f2f;
-  max-height: 30vh;
+  max-height: 29vh;
   object-fit: contain;
 }
 
