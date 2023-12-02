@@ -159,7 +159,6 @@ watch(isMock, (newVal) => {
           <img :src="pdfImageUrl" :class="pdfImageUrl ? 'pdfImage' : 'hide'" alt="pdf screenshot" />
         </div>
       </div>
-
       <div style="height: 60vh">
         <el-tabs v-model="activeName">
           <el-tab-pane label="Schema YAML" name="schemaDefYaml">
@@ -181,7 +180,6 @@ watch(isMock, (newVal) => {
             <el-switch v-model="isMock" active-text="Mock Response" inactive-text="Use AI Model" />
           </el-tab-pane>
         </el-tabs>
-
       </div>
     </div>
     <div class="col-right">
