@@ -23,6 +23,7 @@ const pdfImageUrl = ref('')
 const inferencing = ref(false)
 const activeName = ref('schemaDefYaml')
 const isMock = ref(localStorage.getItem('isMock') === 'true');
+const isDetailHigh = ref(localStorage.getItem('isDetailHigh') === 'true');
 const schemaVersion = ref(0)
 
 let lastYamlCode = "";
@@ -55,13 +56,14 @@ socket.on('server_command', (data) => {
       }
       break
     case 'ai_response_done':
+      inferencing.value = false
+      if (data.data === null) return;
       ElNotification({
         title: 'AI 處理完成',
         message: 'AI 處理完成',
         type: 'success',
         duration: 2000
       })
-      inferencing.value = false
       ymlCode.value = ''
       ymlCode.value = data.data
       schemaVersion.value += 1
@@ -69,6 +71,14 @@ socket.on('server_command', (data) => {
     case 'pdf_screenshot':
       inferencing.value = true
       pdfImageUrl.value = data.data
+      break
+    case 'message':
+      ElNotification({
+        title: '訊息',
+        message: data.data.message,
+        type: data.data.type,
+        duration: data.data.type === 'error' ? 0 : 5000
+      })
       break
   }
 })
@@ -82,9 +92,9 @@ const isLastLineEqualsTo = (code, target) => {
 const onCodeChange = (code) => {
   try {
     let result = parseYAML(code)
-    ajv.compile(result)
+    ajv.compile(result)  // make the error happen to trigger catch block to sync the data to UI
     lastYamlCode = result // make sure the lastYamlCode is always valid
-    if (!inferencing.value) {
+    if (!inferencing.value) { // manually change the code
       schema.value = result
     }
   } catch (e) {
@@ -115,7 +125,8 @@ const pdfUploadLogic = (file) => {
   reader.onload = () => {
     socket.emit('upload_pdf', {
       data: reader.result,
-      is_mock: isMock.value
+      is_mock: isMock.value,
+      is_detail_high: isDetailHigh.value
     })
     ElNotification({
       title: '成功上傳PDF',
@@ -123,16 +134,18 @@ const pdfUploadLogic = (file) => {
       type: 'success',
       duration: 2000
     })
+    pdfFileList.value = []
   }
   reader.readAsDataURL(file)
 }
 const selectText = (element) => {
+  let range;
   if (document.selection) {
-    var range = document.body.createTextRange()
+    range = document.body.createTextRange();
     range.moveToElementText(element)
     range.select()
   } else if (window.getSelection) {
-    var range = document.createRange()
+    range = document.createRange();
     range.selectNode(element)
     window.getSelection().removeAllRanges()
     window.getSelection().addRange(range)
@@ -140,6 +153,9 @@ const selectText = (element) => {
 }
 watch(isMock, (newVal) => {
   localStorage.setItem('isMock', newVal)
+})
+watch(isDetailHigh, (newVal) => {
+  localStorage.setItem('isDetailHigh', newVal)
 })
 </script>
 <template>
