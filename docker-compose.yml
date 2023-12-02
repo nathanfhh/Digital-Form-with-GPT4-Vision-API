@@ -1,0 +1,29 @@
+version: "3.7"
+
+services:
+  aijsv_nginx:
+    build: ai-json-form
+    container_name: aijsv_nginx
+    depends_on:
+      - aijsv_backend
+    ports:
+      - "8080:8080"
+    logging:
+      driver: "json-file"
+      options:
+        max-file: "50"
+        max-size: "10m"
+    restart: "unless-stopped"
+
+  aijsv_backend:
+    build: backend
+    container_name: aijsv_backend
+    environment:
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - OPENAI_ORG_ID=${OPENAI_ORG_ID}
+    logging:
+      driver: "json-file"
+      options:
+        max-file: "50"
+        max-size: "10m"
+    restart: "unless-stopped"
