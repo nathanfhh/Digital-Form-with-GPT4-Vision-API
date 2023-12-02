@@ -31,7 +31,7 @@ def create_app():
         app,
         manage_session=False,
         cors_allowed_origins="*",
-        max_http_buffer_size=2e6
+        max_http_buffer_size=1e7
     )
     app.app_context().push()
     import app.socket as _
