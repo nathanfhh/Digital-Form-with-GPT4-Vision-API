@@ -74,7 +74,7 @@ echo "OPENAI_ORG=YOUR_ORG" >> .env
 docker-compose up --build
 ```
 
-3. Open the browser and go to `http://localhost:8080/aijsv/`
+3. Open the browser and visit `http://localhost:8080/aijsv/`
 
 ## Disclaimer
 
