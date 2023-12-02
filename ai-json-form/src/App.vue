@@ -143,92 +143,91 @@ watch(isMock, (newVal) => {
 })
 </script>
 <template>
-  <div class="container">
-    <div class="col-left">
-      <div class="upload-thumbnail">
-        <el-upload ref="uploadPdf" action accept=".pdf" :limit="1" :on-exceed="handleExceed"
-          :before-upload="pdfUploadLogic" :file-list="pdfFileList" :auto-upload="true"
-          :http-request="(x) => x.onSuccess({})">
-          <div slot="trigger" class="icon">
-            <img style="width: 40px" src="./assets/upload.svg" alt="" /><br>
-            <small>點擊上傳PDF</small>
+  <el-row :gutter="20">
+    <el-col :span="12">
+      <el-row class="operation">
+        <el-col :span="8" class="upload-container">
+          <el-upload :disabled="inferencing" ref="uploadPdf" action accept=".pdf" :limit="1"
+            :on-exceed="handleExceed" :before-upload="pdfUploadLogic" :file-list="pdfFileList" :auto-upload="true"
+            :http-request="(x) => x.onSuccess({})" :show-file-list="false">
+            <div slot="trigger" class="icon">
+              <img style="width: 40px" src="./assets/upload.svg" alt="" /><br>
+              <small>點擊上傳PDF</small>
+            </div>
+          </el-upload>
+        </el-col>
+        <el-col :span="16">
+          <div id="monitor">
+            <div :class="inferencing ? 'scan' : ''"></div>
+            <el-carousel :interval="3500" type="card" style="width: 100%;">
+              <el-carousel-item v-for="url in pdfImageUrl" :key="url" height="100%" style="" arrow="never">
+                <img :src="url" :class="pdfImageUrl ? 'pdfImage' : 'hide'" alt="pdf screenshot" />
+              </el-carousel-item>
+            </el-carousel>
           </div>
-        </el-upload>
-        <div id="monitor">
-          <div :class="inferencing ? 'scan' : ''"></div>
-          <img :src="pdfImageUrl" :class="pdfImageUrl ? 'pdfImage' : 'hide'" alt="pdf screenshot" />
-        </div>
-      </div>
-      <div style="height: 60vh">
-        <el-tabs v-model="activeName">
-          <el-tab-pane label="Schema YAML" name="schemaDefYaml">
-            <div style="height: 58vh">
-              <Codemirror ref="myCm" v-model:value="ymlCode" :options="cmOptions" @change="onCodeChange" />
-            </div>
-          </el-tab-pane>
-          <el-tab-pane label="Schema JSON" name="schemaDefJson">
-            <div style="height: 60vh; overflow: scroll;">
-              <pre @click="selectText($event.target)">{{ schema }}</pre>
-            </div>
-          </el-tab-pane>
-          <el-tab-pane label="Form Data" name="formData">
-            <div style="height: 60vh; overflow: scroll;">
-              <pre @click="selectText($event.target)">{{ formData }}</pre>
-            </div>
-          </el-tab-pane>
-          <el-tab-pane label="Settings" name="settings">
-            <el-switch v-model="isMock" active-text="Mock Response" inactive-text="Use AI Model" />
-          </el-tab-pane>
-        </el-tabs>
-      </div>
-    </div>
-    <div class="col-right">
+        </el-col>
+      </el-row>
+      <el-row>
+        <el-col :span="24">
+          <el-tabs v-model="activeName">
+            <el-tab-pane label="Schema YAML" name="schemaDefYaml">
+              <div style="height: 60vh">
+                <Codemirror ref="myCm" v-model:value="ymlCode" :options="cmOptions" @change="onCodeChange" />
+              </div>
+            </el-tab-pane>
+            <el-tab-pane label="Schema JSON" name="schemaDefJson">
+              <div style="height: 60vh; overflow: scroll;">
+                <pre @click="selectText($event.target)">{{ schema }}</pre>
+              </div>
+            </el-tab-pane>
+            <el-tab-pane label="Form Data" name="formData">
+              <div style="height: 60vh; overflow: scroll;">
+                <pre @click="selectText($event.target)">{{ formData }}</pre>
+              </div>
+            </el-tab-pane>
+            <el-tab-pane label="Settings" name="settings">
+              <el-switch v-model="isMock" active-text="Mock Response" inactive-text="Use AI Model" />
+              <br>
+              <el-switch v-model="isDetailHigh" active-text="OpenAI Image Detail: High"
+                inactive-text="OpenAI Image Detail: Low" />
+            </el-tab-pane>
+          </el-tabs>
+        </el-col>
+      </el-row>
+    </el-col>
+    <el-col :span="12" style="overflow-y: scroll; height: 98vh;">
       <VueForm :key="schemaVersion" v-model="formData" :schema="schema"></VueForm>
-    </div>
-  </div>
+    </el-col>
+  </el-row>
 </template>
 
 <style scoped>
-.container {
-  display: flex;
-  width: 96vw;
-  height: 98vh;
-  justify-content: space-between;
+.operation {
+  border-radius: 5px;
+  border: 1px solid #ccc;
 }
 
-.col-left {
-  width: 40vw;
-  height: 90vh;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-}
 
 .hide {
   display: none;
 }
 
-.col-right {
-  width: 50vw;
-  max-height: 95vh;
-  overflow-y: scroll;
-}
+
 
 .pdfImage {
-  width: 100%;
+  width: auto;
+  border: 1px solid #452f2f;
   max-height: 30vh;
   object-fit: contain;
 }
 
-.upload-thumbnail {
+.upload-container {
   display: flex;
-  justify-content: space-between;
+  justify-content: space-evenly;
   align-items: center;
   height: 31vh;
-  border: 1px solid #ccc;
-  border-radius: 4px;
   padding: 0 10px;
-  margin-bottom: 10px;
+  /* overflow: scroll; */
 }
 
 .scan {
@@ -259,8 +258,8 @@ watch(isMock, (newVal) => {
 }
 
 #monitor {
-  margin: auto;
   position: relative;
-  height: 30vh;
+  display: block;
+  height: 31vh;
 }
 </style>
