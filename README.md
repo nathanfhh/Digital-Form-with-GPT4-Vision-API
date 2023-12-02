@@ -72,8 +72,10 @@ echo "OPENAI_ORG=YOUR_ORG" >> .env
 2. Run the docker-compose
 ```sh
 docker-compose up --build
-
 ```
+
+3. Open the browser and go to `http://localhost:8080/aijsv/`
+
 ## Disclaimer
 
 I am new to Vue, so the code might not be the best practice. I am still learning and improving. Should you have any
