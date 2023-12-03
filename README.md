@@ -62,7 +62,9 @@ python main.py
 ```
 
 ## Running using Docker
+
 1. export the environment variables
+
 ```sh
 echo "OPENAI_API_KEY=YOUR_API_KEY" > .env
 # The following is optional
@@ -70,6 +72,7 @@ echo "OPENAI_ORG=YOUR_ORG" >> .env
 ```
 
 2. Run the docker-compose
+
 ```sh
 docker-compose up --build
 ```
@@ -83,15 +86,18 @@ suggestions, please feel free to PR.
 
 ## Flow Explain
 
-1. Upload a SINGLE page PDF from the frontend
+1. Upload PDF files of up to three pages from the frontend
+
+   > If you want to adjust the number of pages, you can change the `MAX_PDF_PAGES` variable in `backend/app/socket.py`
+
 2. When the backend receives the PDF file in Base64 string format, it does the following processes:
 
-- Convert the URL String Back to Bytes
-- Read the PDF file, convert it to a JPG image, and save it to the /tmp folder using the package `pdf2image`.
-- Extract the strings from the same PDF file using the package `PyPDF2`. The extracted strings will become part of the
-  prompt sent to the GPT4 model to enhance accuracy.
-- Prepare the prompts and send them along with the PDF screenshot to the GPT4 Vision API
-- Send the chunk to the frontend via Socket.IO incrementally.
+    - Convert the URL String Back to Bytes
+    - Read the PDF file, convert it to a JPG image, and save it to the /tmp folder using the package `pdf2image`.
+    - Extract the strings from the same PDF file using the package `PyPDF2`. The extracted strings will become part of
+      the prompt sent to the GPT4 model to enhance accuracy.
+    - Prepare the prompts and send them along with the PDF screenshot to the GPT4 Vision API
+    - Send the chunk to the frontend via Socket.IO incrementally.
 
 3. Whenever the frontend receives the chunk, it appends it to the `codemirror` editor, and checks if the
    current content is a valid YAML. If it's a valid YAML, it will apply it to the JSON Scheme to force the UI to
