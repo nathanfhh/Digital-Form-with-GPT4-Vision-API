@@ -1,20 +1,21 @@
 # PDF to Digital Form using GPT4 Vision API
 
-A POC that uses GPT 4 Vision API to generate a digital form from an Image using JSON Forms from `https://jsonforms.io/`
+A POC that uses GPT 4 Vision API to generate a digital form from an Image using JSON Forms from [https://jsonforms.io/](https://jsonforms.io/)
 
 Inspired by:
 
-1. https://github.com/abi/screenshot-to-code
-2. https://github.com/SawyerHood/draw-a-ui
+1. [screenshot-to-code](https://github.com/abi/screenshot-to-code)：https://github.com/abi/screenshot-to-code
+2. [draw-a-ui](https://github.com/SawyerHood/draw-a-ui)：https://github.com/SawyerHood/draw-a-ui
 
 Both repositories demonstrate that the GPT4 Vision API can be used to generate a UI from an image and can recognize the
 patterns and structure of the layout provided in the image.
 
 ## Demo
 
-[![Watch the Demo Video](https://img.youtube.com/vi/HN_RxSpQXDg/maxresdefault.jpg)](https://youtu.be/HN_RxSpQXDg)
+Click the thumbnail to watch on YouTube:
+[![Watch the Demo Video](https://img.youtube.com/vi/H_92KepVesE/maxresdefault.jpg)](https://youtu.be/H_92KepVesE)
 
-## Running using Local Environment
+## Running using Local Environment 💻
 
 ### Frontend
 
@@ -43,6 +44,8 @@ cd backend
 
 ```sh
 poetry install
+# alternatively, you can use pip install
+pip install -r requirements.txt
 ```
 
 3. Setup Environment Variables
@@ -61,7 +64,7 @@ export OPENAI_ORG=
 python main.py
 ```
 
-## Running using Docker
+## Running using Docker 🐳
 
 1. export the environment variables
 
