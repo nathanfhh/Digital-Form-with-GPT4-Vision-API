@@ -8,10 +8,9 @@ import { ElNotification, ElSwitch } from 'element-plus'
 import { basicSchema } from './configs.js'
 import { codeMirrorConfig } from './codeMirror.js'
 
-
 window.jsyaml = jsyaml
-const VueForm = defineAsyncComponent(() => import('@lljj/vue3-form-element'));
-const Codemirror = defineAsyncComponent(() => import('codemirror-editor-vue3'));
+const VueForm = defineAsyncComponent(() => import('@lljj/vue3-form-element'))
+const Codemirror = defineAsyncComponent(() => import('codemirror-editor-vue3'))
 const schema = ref(basicSchema)
 const formData = ref()
 const ajv = createAjvInstance()
@@ -22,12 +21,12 @@ const pdfFileList = ref([])
 const pdfImageUrl = ref('')
 const inferencing = ref(false)
 const activeName = ref('schemaDefYaml')
-const isMock = ref(localStorage.getItem('isMock') === 'true');
-const isDetailHigh = ref(localStorage.getItem('isDetailHigh') === 'true');
+const isMock = ref(localStorage.getItem('isMock') === 'true')
+const isDetailHigh = ref(localStorage.getItem('isDetailHigh') === 'true')
 const schemaVersion = ref(0)
 const carouselPlay = ref(true)
 
-let lastYamlCode = "";
+let lastYamlCode = ''
 let socket = io(`${import.meta.env.VITE_APP_BACKEND_URL}/openai`, {
   transports: ['websocket', 'polling']
 })
@@ -53,13 +52,12 @@ socket.on('server_command', (data) => {
           block: 'end',
           behavior: 'instant'
         })
-      } catch (e) {
-      }
+      } catch (e) {}
       break
     case 'ai_response_done':
       inferencing.value = false
       carouselPlay.value = false
-      if (data.data === null) return;
+      if (data.data === null) return
       ElNotification({
         title: 'AI 處理完成',
         message: 'AI 處理完成',
@@ -86,7 +84,7 @@ socket.on('server_command', (data) => {
   }
 })
 const parseYAML = (data) => {
-  return jsyaml.load(data);
+  return jsyaml.load(data)
 }
 const isLastLineEqualsTo = (code, target) => {
   let lines = code.trim().split('\n')
@@ -95,22 +93,23 @@ const isLastLineEqualsTo = (code, target) => {
 const onCodeChange = (code) => {
   try {
     let result = parseYAML(code)
-    ajv.compile(result)  // make the error happen to trigger catch block to sync the data to UI
+    ajv.compile(result) // make the error happen to trigger catch block to sync the data to UI
     lastYamlCode = result // make sure the lastYamlCode is always valid
-    if (!inferencing.value) { // manually change the code
+    if (!inferencing.value) {
+      // manually change the code
       schema.value = result
     }
   } catch (e) {
     ajv.errors = []
     if (lastYamlCode && !isLastLineEqualsTo(code, 'items:')) {
       // the VueForm will failed to the type of array not defining items
-      console.log("syncContent", lastYamlCode);
-      schema.value = lastYamlCode;
-      lastYamlCode = null;
+      console.log('syncContent', lastYamlCode)
+      schema.value = lastYamlCode
+      lastYamlCode = null
     }
   }
   // Scroll to the bottom of CodeMirror
-  if (!inferencing.value) return;
+  if (!inferencing.value) return
   myCm.value.cminstance.scrollTo(0, myCm.value.cminstance.getScrollInfo().height)
 }
 
@@ -142,13 +141,13 @@ const pdfUploadLogic = (file) => {
   reader.readAsDataURL(file)
 }
 const selectText = (element) => {
-  let range;
+  let range
   if (document.selection) {
-    range = document.body.createTextRange();
+    range = document.body.createTextRange()
     range.moveToElementText(element)
     range.select()
   } else if (window.getSelection) {
-    range = document.createRange();
+    range = document.createRange()
     range.selectNode(element)
     window.getSelection().removeAllRanges()
     window.getSelection().addRange(range)
@@ -159,6 +158,37 @@ watch(isMock, (newVal) => {
 })
 watch(isDetailHigh, (newVal) => {
   localStorage.setItem('isDetailHigh', newVal)
+})
+const downloadGeneratedYaml = () => {
+  let blob = new Blob([ymlCode.value], { type: 'text/plain;charset=utf-8' })
+  let url = window.URL.createObjectURL(blob)
+  let a = document.createElement('a')
+  a.href = url
+  a.download = 'schema.yaml'
+  a.click()
+  window.URL.revokeObjectURL(url)
+}
+const downloadGeneratedJSON = () => {
+  let blob = new Blob([JSON.stringify(schema.value, null, 2)], { type: 'text/plain;charset=utf-8' })
+  let url = window.URL.createObjectURL(blob)
+  let a = document.createElement('a')
+  a.href = url
+  a.download = 'schema.json'
+  a.click()
+  window.URL.revokeObjectURL(url)
+}
+const adjusttabContentHeight = () => {
+  let vh = window.innerHeight
+  let px = vh - 282
+  if (px < 300) px = 300
+  document.querySelectorAll('[name="tabContent"]').forEach((el) => {
+    el.style.height = `${px}px`
+  })
+  tabContentHeight.value = `${px}px` // 220px Upload + 40px Tab + 15px Margin + 5px Body Margin
+}
+onMounted(() => {
+  window.addEventListener('resize', adjusttabContentHeight)
+  adjusttabContentHeight()
 })
 </script>
 <template>
@@ -190,12 +220,36 @@ watch(isDetailHigh, (newVal) => {
         <el-col :span="24">
           <el-tabs v-model="activeName">
             <el-tab-pane label="Schema YAML" name="schemaDefYaml">
-              <div style="height: 60vh">
-                <Codemirror ref="myCm" v-model:value="ymlCode" :options="cmOptions" @change="onCodeChange" />
+              <el-button
+                class="tab-button"
+                type="primary"
+                @click="downloadGeneratedYaml"
+              >
+                <img
+                  style="width: 20px"
+                  src="./assets/download.svg"
+                  alt="download button"
+                />&nbsp;下載
+              </el-button>
+              <div>
+                <Codemirror
+                  ref="myCm"
+                  v-model:value="ymlCode"
+                  :options="cmOptions"
+                  :height="tabContentHeight"
+                  @change="onCodeChange"
+                />
               </div>
             </el-tab-pane>
             <el-tab-pane label="Schema JSON" name="schemaDefJson">
-              <div style="height: 60vh; overflow: scroll;">
+              <el-button class="tab-button" type="primary" @click="downloadGeneratedJSON">
+                <img
+                  style="width: 20px"
+                  src="./assets/download.svg"
+                  alt="download button"
+                />&nbsp;下載
+              </el-button>
+              <div name="tabContent" style="overflow: scroll">
                 <pre @click="selectText($event.target)">{{ schema }}</pre>
               </div>
             </el-tab-pane>
