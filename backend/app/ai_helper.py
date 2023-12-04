@@ -103,6 +103,10 @@ def stream_openai_response(messages, callables: dict[str, Callable], is_mock):
 
 
 def generate_prompt(configs: dict):
+    pages = len(configs["img_data_url"])
+    user_prompt = USER_PROMPT + (
+        f"\nIMPORTANT: The PDF file has {pages} page{'' if pages <= 1 else 's'}, make sure to inference all of them."
+    )
     return [
         {
             "role": "system",
@@ -129,7 +133,7 @@ def generate_prompt(configs: dict):
                        ] + [
                            {
                                "type": "text",
-                               "text": USER_PROMPT,
+                               "text": user_prompt,
                            },
                        ],
         },
