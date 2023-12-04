@@ -97,11 +97,7 @@ def stream_openai_response(messages, callables: dict[str, Callable], is_mock):
         full_response += content
         buffer += content
         if buffer and buffer.endswith("\n"):
-            callables['socketio_obj'].emit(
-                "server_command",
-                {"cmd": "ai_response", "data": buffer},
-                namespace="/openai"
-            )
+            callables['socket_emit_private']({"cmd": "ai_response", "data": buffer})
             buffer = ""
     return full_response
 
@@ -146,11 +142,7 @@ def inference(configs: dict, callables, is_mock=True):
         for i in range(configs["image_count"])
     ]
     configs["img_data_url"] = img_data_url
-    callables['socketio_obj'].emit(
-        "server_command",
-        {"cmd": "pdf_screenshot", "data": img_data_url},
-        namespace="/openai"
-    )
+    callables['socket_emit_private']({"cmd": "pdf_screenshot", "data": img_data_url})
     return stream_openai_response(
         generate_prompt(configs), callables, is_mock
     )

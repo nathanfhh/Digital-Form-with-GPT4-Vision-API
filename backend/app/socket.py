@@ -2,6 +2,7 @@ import base64
 import uuid
 
 from PyPDF2 import PdfReader
+from flask import request
 from pdf2image import convert_from_path
 
 from app import socketio
@@ -21,6 +22,15 @@ def on_join_openai(data):
     )
 
 
+def socket_emit_private(payload):
+    socketio.emit(
+        "server_command",
+        payload,
+        namespace="/openai",
+        to=request.sid
+    )
+
+
 @socketio.on("upload_pdf", namespace="/openai")
 def upload_pdf_and_generate_yaml(data):
     session = uuid.uuid4().hex
@@ -36,17 +46,13 @@ def upload_pdf_and_generate_yaml(data):
         "is_detail_high": data.get("is_detail_high", False) is True,
     }
     callables = {
-        "socketio_obj": socketio,
+        "socket_emit_private": socket_emit_private,
         "notify_frontend": notify_frontend,
     }
-    socketio.emit(
-        "server_command",
-        {
-            "cmd": "ai_response_done",
-            "data": inference(configs, callables, is_mock=data.get("is_mock", False) is True)
-        },
-        namespace="/openai"
-    )
+    socket_emit_private({
+        "cmd": "ai_response_done",
+        "data": inference(configs, callables, is_mock=data.get("is_mock", False) is True)
+    })
     cleanup_intermediate_files(session)
 
 
@@ -78,17 +84,13 @@ def convert_pdf_to_jpg(session):
 
 
 def notify_frontend(message, type_="success"):
-    socketio.emit(
-        "server_command",
-        {
-            "cmd": "message",
-            "data": {
-                "message": message,
-                "type": type_
-            }
-        },
-        namespace="/openai"
-    )
+    socket_emit_private({
+        "cmd": "message",
+        "data": {
+            "message": message,
+            "type": type_
+        }
+    })
 
 
 def save_pdf_to_disk(data, session):
