@@ -1,6 +1,6 @@
 <script setup>
-import { createAjvInstance } from './ajvVueForm.js';
-import { ref, watch, defineAsyncComponent } from 'vue'
+import { createAjvInstance } from './ajvVueForm.js'
+import { ref, watch, defineAsyncComponent, onMounted } from 'vue'
 import { io } from 'socket.io-client'
 
 import jsyaml from 'js-yaml'
@@ -25,6 +25,7 @@ const isMock = ref(localStorage.getItem('isMock') === 'true')
 const isDetailHigh = ref(localStorage.getItem('isDetailHigh') === 'true')
 const schemaVersion = ref(0)
 const carouselPlay = ref(true)
+const tabContentHeight = ref('')
 
 let lastYamlCode = ''
 let socket = io(`${import.meta.env.VITE_APP_BACKEND_URL}/openai`, {
@@ -192,15 +193,25 @@ onMounted(() => {
 })
 </script>
 <template>
-  <el-row :gutter="20">
+  <el-row :gutter="10" style="margin: 0">
     <el-col :span="12">
       <el-row class="operation">
         <el-col :span="8" class="upload-container">
-          <el-upload :disabled="inferencing" ref="uploadPdf" action accept=".pdf" :limit="1" :on-exceed="handleExceed"
-            :before-upload="pdfUploadLogic" :file-list="pdfFileList" :auto-upload="true"
-            :http-request="(x) => x.onSuccess({})" :show-file-list="false">
+          <el-upload
+            :disabled="inferencing"
+            ref="uploadPdf"
+            action
+            accept=".pdf"
+            :limit="1"
+            :on-exceed="handleExceed"
+            :before-upload="pdfUploadLogic"
+            :file-list="pdfFileList"
+            :auto-upload="true"
+            :http-request="(x) => x.onSuccess({})"
+            :show-file-list="false"
+          >
             <div slot="trigger" class="icon">
-              <img style="width: 40px" src="./assets/upload.svg" alt="" /><br>
+              <img style="width: 40px" src="./assets/upload.svg" alt="" /><br />
               <small>點擊上傳PDF</small>
             </div>
           </el-upload>
@@ -208,8 +219,14 @@ onMounted(() => {
         <el-col :span="16">
           <div id="monitor">
             <div :class="inferencing ? 'scan' : ''"></div>
-            <el-carousel v-if="pdfImageUrl" :autoplay="carouselPlay" :interval="3500" type="card" style="width: 100%;">
-              <el-carousel-item v-for="url in pdfImageUrl" :key="url" height="100%">
+            <el-carousel
+              v-if="pdfImageUrl"
+              :autoplay="carouselPlay"
+              :interval="3500"
+              type="card"
+              height="220px"
+            >
+              <el-carousel-item v-for="url in pdfImageUrl" :key="url">
                 <img :src="url" :class="pdfImageUrl ? 'pdfImage' : 'hide'" alt="pdf screenshot" />
               </el-carousel-item>
             </el-carousel>
@@ -254,21 +271,29 @@ onMounted(() => {
               </div>
             </el-tab-pane>
             <el-tab-pane label="Form Data" name="formData">
-              <div style="height: 60vh; overflow: scroll;">
+              <div name="tabContent" style="overflow: scroll">
                 <pre @click="selectText($event.target)">{{ formData }}</pre>
               </div>
             </el-tab-pane>
             <el-tab-pane label="Settings" name="settings">
-              <el-switch v-model="isMock" active-text="Mock Response" inactive-text="Use AI Model" />
-              <br>
-              <el-switch v-model="isDetailHigh" active-text="OpenAI Image Detail: High"
-                inactive-text="OpenAI Image Detail: Low" />
+              <p>
+                &nbsp;&nbsp;Use AI Model:<br />
+                <span style="display: flex; justify-content: center">
+                  <el-switch v-model="isMock" active-text="Mocked" inactive-text="Real" />
+                </span>
+              </p>
+              <p>
+                &nbsp;&nbsp;OpenAI Image Detail:<br />
+                <span style="display: flex; justify-content: center">
+                  <el-switch v-model="isDetailHigh" active-text="High" inactive-text="Low" />
+                </span>
+              </p>
             </el-tab-pane>
           </el-tabs>
         </el-col>
       </el-row>
     </el-col>
-    <el-col :span="12" style="overflow-y: scroll; height: 98vh;">
+    <el-col :span="12" style="overflow-y: scroll; height: calc(100vh - 5px)">
       <VueForm :key="schemaVersion" v-model="formData" :schema="schema"></VueForm>
     </el-col>
   </el-row>
@@ -278,8 +303,12 @@ onMounted(() => {
 .operation {
   border-radius: 5px;
   border: 1px solid #ccc;
+  height: 220px;
 }
-
+.el-carousel__container,
+.el-carousel__item {
+  height: 200px;
+}
 .hide {
   display: none;
 }
@@ -295,7 +324,6 @@ onMounted(() => {
   display: flex;
   justify-content: space-evenly;
   align-items: center;
-  height: 31vh;
   padding: 0 10px;
   /* overflow: scroll; */
 }
@@ -314,7 +342,6 @@ onMounted(() => {
 }
 
 @keyframes scan {
-
   0%,
   100% {
     -webkit-transform: translateY(0);
@@ -330,6 +357,20 @@ onMounted(() => {
 #monitor {
   position: relative;
   display: block;
-  height: 31vh;
+  text-align: center;
+}
+
+p {
+  margin-bottom: 2px;
+}
+
+pre {
+  margin: 0;
+}
+.tab-button {
+  top: 0;
+  right: 0;
+  position: absolute;
+  z-index: 1;
 }
 </style>
