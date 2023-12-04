@@ -25,6 +25,7 @@ const activeName = ref('schemaDefYaml')
 const isMock = ref(localStorage.getItem('isMock') === 'true');
 const isDetailHigh = ref(localStorage.getItem('isDetailHigh') === 'true');
 const schemaVersion = ref(0)
+const carouselPlay = ref(true)
 
 let lastYamlCode = "";
 let socket = io(`${import.meta.env.VITE_APP_BACKEND_URL}/openai`, {
@@ -57,6 +58,7 @@ socket.on('server_command', (data) => {
       break
     case 'ai_response_done':
       inferencing.value = false
+      carouselPlay.value = false
       if (data.data === null) return;
       ElNotification({
         title: 'AI 處理完成',
@@ -71,6 +73,7 @@ socket.on('server_command', (data) => {
     case 'pdf_screenshot':
       inferencing.value = true
       pdfImageUrl.value = data.data
+      carouselPlay.value = true
       break
     case 'message':
       ElNotification({
@@ -175,7 +178,7 @@ watch(isDetailHigh, (newVal) => {
         <el-col :span="16">
           <div id="monitor">
             <div :class="inferencing ? 'scan' : ''"></div>
-            <el-carousel :interval="3500" type="card" style="width: 100%;" :autoplay="true">
+            <el-carousel v-if="pdfImageUrl" :autoplay="carouselPlay" :interval="3500" type="card" style="width: 100%;">
               <el-carousel-item v-for="url in pdfImageUrl" :key="url" height="100%">
                 <img :src="url" :class="pdfImageUrl ? 'pdfImage' : 'hide'" alt="pdf screenshot" />
               </el-carousel-item>
