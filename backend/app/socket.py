@@ -1,7 +1,7 @@
 import base64
 import uuid
 
-from PyPDF2 import PdfReader
+from pypdf import PdfReader
 from flask import request
 from pdf2image import convert_from_path
 
