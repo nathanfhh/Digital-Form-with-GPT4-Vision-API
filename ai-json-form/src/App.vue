@@ -316,7 +316,7 @@ onMounted(() => {
 .pdfImage {
   width: auto;
   border: 1px solid #452f2f;
-  max-height: 29vh;
+  max-height: 198px;
   object-fit: contain;
 }
 
