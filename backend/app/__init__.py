@@ -9,7 +9,7 @@ socketio = SocketIO()
 # noinspection PyBroadException
 def get_sematic_version():
     try:
-        project_root = Path(__file__).absolute().parent.parent.parent
+        project_root = Path(__file__).absolute().parent.parent
         return (
                 [
                     x.strip() for x in ((project_root / "pyproject.toml").read_text().split("\n"))
