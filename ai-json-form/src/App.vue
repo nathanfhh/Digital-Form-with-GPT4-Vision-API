@@ -7,6 +7,8 @@ import jsyaml from 'js-yaml'
 import { ElNotification, ElSwitch } from 'element-plus'
 import { basicSchema } from './configs.js'
 import { codeMirrorConfig } from './codeMirror.js'
+import { getVersion } from './axios.js'
+import { SocketIOBackendHandler, FrontendOnlyHandler } from './handler.js'
 
 window.jsyaml = jsyaml
 const VueForm = defineAsyncComponent(() => import('@lljj/vue3-form-element'))
@@ -15,10 +17,10 @@ const schema = ref(basicSchema)
 const formData = ref()
 const ajv = createAjvInstance()
 const cmOptions = ref(codeMirrorConfig)
-const ymlCode = ref(jsyaml.dump(schema.value))
+const ymlCode = ref(jsyaml.dump(schema.value) || '')
 const myCm = ref()
 const pdfFileList = ref([])
-const pdfImageUrl = ref('')
+const pdfImageDataList = ref([])
 const inferencing = ref(false)
 const activeName = ref('schemaDefYaml')
 const isMock = ref(localStorage.getItem('isMock') === 'true')
@@ -26,64 +28,85 @@ const isDetailHigh = ref(localStorage.getItem('isDetailHigh') === 'true')
 const schemaVersion = ref(0)
 const carouselPlay = ref(true)
 const tabContentHeight = ref('')
+const frontendOnly = ref(false)
+const OpenAPIKey = ref('')
+let handler = null
+
+const frontendOnlyHandler = () => {
+  frontendOnly.value = true
+  handler = new FrontendOnlyHandler(
+    {
+      inferencing: inferencing,
+      carouselPlay: carouselPlay,
+      ymlCode: ymlCode,
+      schemaVersion: schemaVersion,
+      pdfImageDataList: pdfImageDataList
+    }
+  )
+  ElNotification({
+    title: '無法連接後端',
+    message: '由於無法連接後端，將使用純前端功能，請至 Settings 下填入 OpenAI API Key',
+    type: 'warning',
+    duration: 30000
+  })
+  console.log('無法連接後端，將使用純前端功能，請至 Settings 下填入 OpenAI API Key')
+  activeName.value = 'settings'
+}
+getVersion()
+  .then((response) => {
+    console.log(response)
+    if (response.status !== 200) {
+      frontendOnlyHandler()
+    } else {
+      let socket = io(`${import.meta.env.VITE_APP_BACKEND_URL}/openai`, {
+        transports: ['websocket', 'polling']
+      })
+      handler = new SocketIOBackendHandler(socket, {
+      inferencing: inferencing,
+      carouselPlay: carouselPlay,
+      ymlCode: ymlCode,
+      schemaVersion: schemaVersion,
+      pdfImageDataList: pdfImageDataList,
+    })
+      socket.on('connect', () => {
+        socket.emit('join', {})
+      })
+      socket.on('server_command', (data) => {
+        switch (data.cmd) {
+          case 'greeting':
+            ElNotification({
+              title: '成功連接 SocketIo!',
+              message: data.data,
+              type: 'success',
+              duration: 2000
+            })
+            break
+          case 'ai_response':
+            handler.handle_ai_response(data.data)
+            break
+          case 'ai_response_done':
+            handler.handle_ai_response_done(data.data)
+            break
+          case 'pdf_screenshot':
+            handler.handle_pdf_screenshot(data.data)
+            break
+          case 'message':
+            ElNotification({
+              title: '訊息',
+              message: data.data.message,
+              type: data.data.type,
+              duration: data.data.type === 'error' ? 0 : 5000
+            })
+            break
+        }
+      })
+    }
+  })
+  .catch((e) => {
+    frontendOnlyHandler()
+  })
 
 let lastYamlCode = ''
-let socket = io(`${import.meta.env.VITE_APP_BACKEND_URL}/openai`, {
-  transports: ['websocket', 'polling']
-})
-
-socket.on('connect', () => {
-  socket.emit('join', {})
-})
-socket.on('server_command', (data) => {
-  switch (data.cmd) {
-    case 'greeting':
-      ElNotification({
-        title: '成功連接 SocketIo!',
-        message: data.data,
-        type: 'success',
-        duration: 2000
-      })
-      break
-    case 'ai_response':
-      inferencing.value = true
-      ymlCode.value += data.data
-      try {
-        document.querySelector('.el-form').scrollIntoView({
-          block: 'end',
-          behavior: 'instant'
-        })
-      } catch (e) {}
-      break
-    case 'ai_response_done':
-      inferencing.value = false
-      carouselPlay.value = false
-      if (data.data === null) return
-      ElNotification({
-        title: 'AI 處理完成',
-        message: 'AI 處理完成',
-        type: 'success',
-        duration: 2000
-      })
-      ymlCode.value = ''
-      ymlCode.value = data.data
-      schemaVersion.value += 1
-      break
-    case 'pdf_screenshot':
-      inferencing.value = true
-      pdfImageUrl.value = data.data
-      carouselPlay.value = true
-      break
-    case 'message':
-      ElNotification({
-        title: '訊息',
-        message: data.data.message,
-        type: data.data.type,
-        duration: data.data.type === 'error' ? 0 : 5000
-      })
-      break
-  }
-})
 const parseYAML = (data) => {
   return jsyaml.load(data)
 }
@@ -126,11 +149,7 @@ const pdfUploadLogic = (file) => {
   ymlCode.value = ''
   let reader = new FileReader()
   reader.onload = () => {
-    socket.emit('upload_pdf', {
-      data: reader.result,
-      is_mock: isMock.value,
-      is_detail_high: isDetailHigh.value
-    })
+    handler.handle_pdf_file(reader.result, isMock.value, isDetailHigh.value)
     ElNotification({
       title: '成功上傳PDF',
       message: '成功上傳PDF',
@@ -220,14 +239,14 @@ onMounted(() => {
           <div id="monitor">
             <div :class="inferencing ? 'scan' : ''"></div>
             <el-carousel
-              v-if="pdfImageUrl"
+              v-if="pdfImageDataList"
               :autoplay="carouselPlay"
               :interval="3500"
               type="card"
               height="220px"
             >
-              <el-carousel-item v-for="url in pdfImageUrl" :key="url">
-                <img :src="url" :class="pdfImageUrl ? 'pdfImage' : 'hide'" alt="pdf screenshot" />
+              <el-carousel-item v-for="url in pdfImageDataList" :key="url">
+                <img :src="url" :class="pdfImageDataList ? 'pdfImage' : 'hide'" alt="pdf screenshot" />
               </el-carousel-item>
             </el-carousel>
           </div>
@@ -237,11 +256,7 @@ onMounted(() => {
         <el-col :span="24">
           <el-tabs v-model="activeName">
             <el-tab-pane label="Schema YAML" name="schemaDefYaml">
-              <el-button
-                class="tab-button"
-                type="primary"
-                @click="downloadGeneratedYaml"
-              >
+              <el-button class="tab-button" type="primary" @click="downloadGeneratedYaml">
                 <img
                   style="width: 20px"
                   src="./assets/download.svg"
@@ -287,6 +302,13 @@ onMounted(() => {
                 <span style="display: flex; justify-content: center">
                   <el-switch v-model="isDetailHigh" active-text="High" inactive-text="Low" />
                 </span>
+              </p>
+              <p>
+                &nbsp;&nbsp;OpenAI API Key:<br />
+                <div style="display: flex; justify-content: center;">
+                <span style="display: flex; justify-content: center; width: 90%; margin-top: 5px;">
+                  <el-input type="password" v-model="OpenAPIKey" placeholder="OpenAI API Key: sk-....." />
+                </span></div>
               </p>
             </el-tab-pane>
           </el-tabs>
