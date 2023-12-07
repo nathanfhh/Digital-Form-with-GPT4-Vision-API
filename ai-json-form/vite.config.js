@@ -1,12 +1,14 @@
 import { defineConfig, loadEnv } from 'vite'
 import vue from '@vitejs/plugin-vue'
+import { visualizer } from "rollup-plugin-visualizer";
+import { splitVendorChunkPlugin } from 'vite'
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '')
   return {
     base: env.VITE_APP_BASE_URL + '/',
-    plugins: [vue()],
+    plugins: [vue(), visualizer(), splitVendorChunkPlugin()],
     optimizeDeps: {
       esbuildOptions: {
         target: "esnext",
@@ -16,6 +18,17 @@ export default defineConfig(({ mode }) => {
       minify: "terser",
       sourcemap: false,
       target: "esnext",
+      rollupOptions: {
+        output: {
+          manualChunks: {
+            'element-plus': ["element-plus"],
+            'pdfjs-dist': ["pdfjs-dist"],
+            'codemirror': ["codemirror"],
+            'openai': ["openai"],
+            'ajv': ["ajv"],
+          },
+        },
+      },
       terserOptions: {
         compress: {
           drop_console: true,
