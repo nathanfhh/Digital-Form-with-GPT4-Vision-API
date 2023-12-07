@@ -311,6 +311,7 @@ properties:
 # This is a sample schema for mock response.`
 
 export async function inference(prompts, handlerObj) {
+  handlerObj.tabActiveName.value = 'schemaDefYaml'
   if (handlerObj.isMock.value) {
     let chunk = mockedResponse.split('\n')
     await Promise.all(

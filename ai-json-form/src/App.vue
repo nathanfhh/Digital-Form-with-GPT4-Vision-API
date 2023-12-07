@@ -60,7 +60,6 @@ getVersion()
     if (response.status !== 200) return frontendOnlyHandler()
     if (!response.data?.data?.version) return frontendOnlyHandler()
     handler = new SocketIOBackendHandler(handlerParameters)
-
   })
   .catch((e) => {
     console.error(e)
