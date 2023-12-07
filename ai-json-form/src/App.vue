@@ -1,12 +1,14 @@
 <script setup>
 import { createAjvInstance } from './ajvVueForm.js'
 import { ref, watch, defineAsyncComponent, onMounted } from 'vue'
-import { io } from 'socket.io-client'
 
 import jsyaml from 'js-yaml'
-import { ElNotification, ElSwitch } from 'element-plus'
+import { ElNotification, ElSwitch, ElInput, ElRow, ElCol, ElUpload, ElCarousel, ElCarouselItem, ElTabPane, ElTabs, ElButton } from 'element-plus'
 import { basicSchema } from './configs.js'
 import { codeMirrorConfig } from './codeMirror.js'
+import { getVersion } from './axios.js'
+import { handlers } from './handler'
+
 
 window.jsyaml = jsyaml
 const VueForm = defineAsyncComponent(() => import('@lljj/vue3-form-element'))
@@ -15,75 +17,57 @@ const schema = ref(basicSchema)
 const formData = ref()
 const ajv = createAjvInstance()
 const cmOptions = ref(codeMirrorConfig)
-const ymlCode = ref(jsyaml.dump(schema.value))
+const ymlCode = ref(jsyaml.dump(schema.value) || '')
 const myCm = ref()
 const pdfFileList = ref([])
-const pdfImageUrl = ref('')
+const pdfImageDataList = ref([])
 const inferencing = ref(false)
-const activeName = ref('schemaDefYaml')
+const tabActiveName = ref('schemaDefYaml')
 const isMock = ref(localStorage.getItem('isMock') === 'true')
 const isDetailHigh = ref(localStorage.getItem('isDetailHigh') === 'true')
 const schemaVersion = ref(0)
-const carouselPlay = ref(true)
 const tabContentHeight = ref('')
+const frontendOnly = ref(false)
+const OpenAPIKey = ref('')
+
+const { SocketIOBackendHandler, FrontendOnlyHandler } = handlers
+let handler = null
+let handlerParameters = {
+  inferencing: inferencing,
+  ymlCode: ymlCode,
+  schemaVersion: schemaVersion,
+  pdfImageDataList: pdfImageDataList,
+  isDetailHigh: isDetailHigh,
+  isMock: isMock,
+  tabActiveName: tabActiveName
+}
+
+const frontendOnlyHandler = () => {
+  frontendOnly.value = true
+  handler = new FrontendOnlyHandler(OpenAPIKey, handlerParameters)
+  ElNotification({
+    title: '您正使用純前端功能',
+    message: '由於無法連接後端，將使用純前端功能，請至 Settings 下填入 OpenAI API Key',
+    type: 'warning',
+    duration: 30000
+  })
+  console.log('無法連接後端，將使用純前端功能，請至 Settings 下填入 OpenAI API Key')
+  tabActiveName.value = 'settings'
+}
+getVersion()
+  .then((response) => {
+    console.log(response)
+    if (response.status !== 200) return frontendOnlyHandler()
+    if (!response.data?.data?.version) return frontendOnlyHandler()
+    handler = new SocketIOBackendHandler(handlerParameters)
+
+  })
+  .catch((e) => {
+    console.error(e)
+    frontendOnlyHandler()
+  })
 
 let lastYamlCode = ''
-let socket = io(`${import.meta.env.VITE_APP_BACKEND_URL}/openai`, {
-  transports: ['websocket', 'polling']
-})
-
-socket.on('connect', () => {
-  socket.emit('join', {})
-})
-socket.on('server_command', (data) => {
-  switch (data.cmd) {
-    case 'greeting':
-      ElNotification({
-        title: '成功連接 SocketIo!',
-        message: data.data,
-        type: 'success',
-        duration: 2000
-      })
-      break
-    case 'ai_response':
-      inferencing.value = true
-      ymlCode.value += data.data
-      try {
-        document.querySelector('.el-form').scrollIntoView({
-          block: 'end',
-          behavior: 'instant'
-        })
-      } catch (e) {}
-      break
-    case 'ai_response_done':
-      inferencing.value = false
-      carouselPlay.value = false
-      if (data.data === null) return
-      ElNotification({
-        title: 'AI 處理完成',
-        message: 'AI 處理完成',
-        type: 'success',
-        duration: 2000
-      })
-      ymlCode.value = ''
-      ymlCode.value = data.data
-      schemaVersion.value += 1
-      break
-    case 'pdf_screenshot':
-      inferencing.value = true
-      pdfImageUrl.value = data.data
-      carouselPlay.value = true
-      break
-    case 'message':
-      ElNotification({
-        title: '訊息',
-        message: data.data.message,
-        type: data.data.type,
-        duration: data.data.type === 'error' ? 0 : 5000
-      })
-      break
-  }
-})
 const parseYAML = (data) => {
   return jsyaml.load(data)
 }
@@ -126,17 +110,7 @@ const pdfUploadLogic = (file) => {
   ymlCode.value = ''
   let reader = new FileReader()
   reader.onload = () => {
-    socket.emit('upload_pdf', {
-      data: reader.result,
-      is_mock: isMock.value,
-      is_detail_high: isDetailHigh.value
-    })
-    ElNotification({
-      title: '成功上傳PDF',
-      message: '成功上傳PDF',
-      type: 'success',
-      duration: 2000
-    })
+    handler.handle_pdf_file(reader.result, isMock.value, isDetailHigh.value)
     pdfFileList.value = []
   }
   reader.readAsDataURL(file)
@@ -197,19 +171,9 @@ onMounted(() => {
     <el-col :span="12">
       <el-row class="operation">
         <el-col :span="8" class="upload-container">
-          <el-upload
-            :disabled="inferencing"
-            ref="uploadPdf"
-            action
-            accept=".pdf"
-            :limit="1"
-            :on-exceed="handleExceed"
-            :before-upload="pdfUploadLogic"
-            :file-list="pdfFileList"
-            :auto-upload="true"
-            :http-request="(x) => x.onSuccess({})"
-            :show-file-list="false"
-          >
+          <el-upload :disabled="inferencing" ref="uploadPdf" action accept=".pdf" :limit="1" :on-exceed="handleExceed"
+            :before-upload="pdfUploadLogic" :file-list="pdfFileList" :auto-upload="true"
+            :http-request="(x) => x.onSuccess({})" :show-file-list="false">
             <div slot="trigger" class="icon">
               <img style="width: 40px" src="./assets/upload.svg" alt="" /><br />
               <small>點擊上傳PDF</small>
@@ -219,15 +183,9 @@ onMounted(() => {
         <el-col :span="16">
           <div id="monitor">
             <div :class="inferencing ? 'scan' : ''"></div>
-            <el-carousel
-              v-if="pdfImageUrl"
-              :autoplay="carouselPlay"
-              :interval="3500"
-              type="card"
-              height="220px"
-            >
-              <el-carousel-item v-for="url in pdfImageUrl" :key="url">
-                <img :src="url" :class="pdfImageUrl ? 'pdfImage' : 'hide'" alt="pdf screenshot" />
+            <el-carousel v-if="pdfImageDataList" :autoplay="inferencing" :interval="3500" type="card" height="220px">
+              <el-carousel-item v-for="url in pdfImageDataList" :key="url">
+                <img :src="url" :class="pdfImageDataList ? 'pdfImage' : 'hide'" alt="pdf screenshot" />
               </el-carousel-item>
             </el-carousel>
           </div>
@@ -235,36 +193,19 @@ onMounted(() => {
       </el-row>
       <el-row>
         <el-col :span="24">
-          <el-tabs v-model="activeName">
+          <el-tabs v-model="tabActiveName">
             <el-tab-pane label="Schema YAML" name="schemaDefYaml">
-              <el-button
-                class="tab-button"
-                type="primary"
-                @click="downloadGeneratedYaml"
-              >
-                <img
-                  style="width: 20px"
-                  src="./assets/download.svg"
-                  alt="download button"
-                />&nbsp;下載
+              <el-button class="tab-button" type="primary" @click="downloadGeneratedYaml">
+                <img style="width: 20px" src="./assets/download.svg" alt="download button" />&nbsp;下載
               </el-button>
               <div>
-                <Codemirror
-                  ref="myCm"
-                  v-model:value="ymlCode"
-                  :options="cmOptions"
-                  :height="tabContentHeight"
-                  @change="onCodeChange"
-                />
+                <Codemirror ref="myCm" v-model:value="ymlCode" :options="cmOptions" :height="tabContentHeight"
+                  @change="onCodeChange" />
               </div>
             </el-tab-pane>
             <el-tab-pane label="Schema JSON" name="schemaDefJson">
               <el-button class="tab-button" type="primary" @click="downloadGeneratedJSON">
-                <img
-                  style="width: 20px"
-                  src="./assets/download.svg"
-                  alt="download button"
-                />&nbsp;下載
+                <img style="width: 20px" src="./assets/download.svg" alt="download button" />&nbsp;下載
               </el-button>
               <div name="tabContent" style="overflow: scroll">
                 <pre @click="selectText($event.target)">{{ schema }}</pre>
@@ -288,6 +229,24 @@ onMounted(() => {
                   <el-switch v-model="isDetailHigh" active-text="High" inactive-text="Low" />
                 </span>
               </p>
+              <p v-show="frontendOnly && !isMock">
+                &nbsp;&nbsp;OpenAI API Key (for Frontend Only Mode):<br />
+              <div style="display: flex; justify-content: center;">
+                <span
+                  style="display: flex; flex-direction: column ;justify-content: center; width: 90%; margin-top: 5px;">
+                  <el-input id="apiKey" type="password" v-model="OpenAPIKey" placeholder="OpenAI API Key: sk-....." />
+                  <small style="color: rgba(0, 0, 0, 0.4); margin-top: 2px;">
+                    &nbsp;&nbsp;Your key <b>MUST</b> have access to <ins>GPT-4 Vision</ins>, for details you may refer to
+                    <a href="https://github.com/abi/screenshot-to-code/blob/main/Troubleshooting.md"
+                      target="_blank">screenshot-to-code</a> Repository.
+                  </small>
+                  <small style="color: rgba(200, 0, 0, 0.4); margin-top: 2px;">
+                    &nbsp;&nbsp;The frontend-only mode exposes API keys in browser code, which may create security risks.
+                    Keys are recommended to be revoked after use. We promise not to record entries.
+                  </small>
+                </span>
+              </div>
+              </p>
             </el-tab-pane>
           </el-tabs>
         </el-col>
@@ -305,10 +264,12 @@ onMounted(() => {
   border: 1px solid #ccc;
   height: 220px;
 }
+
 .el-carousel__container,
 .el-carousel__item {
   height: 200px;
 }
+
 .hide {
   display: none;
 }
@@ -329,10 +290,11 @@ onMounted(() => {
 }
 
 .scan {
-  width: 100%;
+  width: 75%;
   height: 10px;
   background-color: rgba(238, 72, 72, 0.8);
   position: absolute;
+  left: 12.5%;
   z-index: 9999;
   -moz-animation: scan 5s infinite;
   -webkit-animation: scan 5s infinite;
@@ -342,6 +304,7 @@ onMounted(() => {
 }
 
 @keyframes scan {
+
   0%,
   100% {
     -webkit-transform: translateY(0);
@@ -349,8 +312,8 @@ onMounted(() => {
   }
 
   100% {
-    -webkit-transform: translateY(calc(-10px + 30vh));
-    transform: translateY(calc(-10px + 30vh));
+    -webkit-transform: translateY(210px);
+    transform: translateY(210px);
   }
 }
 
@@ -358,6 +321,7 @@ onMounted(() => {
   position: relative;
   display: block;
   text-align: center;
+  margin: 0 auto;
 }
 
 p {
@@ -367,6 +331,7 @@ p {
 pre {
   margin: 0;
 }
+
 .tab-button {
   top: 0;
   right: 0;
