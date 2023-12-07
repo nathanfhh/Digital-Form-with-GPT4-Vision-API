@@ -35,7 +35,7 @@ jobs:
         run: |
           cd ai-json-form
           npm install
-          npm run build 
+          npm run github 
       - name: Setup Pages
         uses: actions/configure-pages@v4
       - name: Upload artifact
