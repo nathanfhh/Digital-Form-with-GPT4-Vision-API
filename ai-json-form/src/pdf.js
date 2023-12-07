@@ -1,6 +1,5 @@
 import * as pdfjs from 'pdfjs-dist/build/pdf.mjs'
-import * as pdfjsWorker from 'pdfjs-dist/build/pdf.worker.mjs'
-pdfjs.GlobalWorkerOptions.workerSrc = pdfjsWorker
+pdfjs.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.0.269/pdf.worker.mjs"
 import { ElNotification } from 'element-plus'
 
 const renderPage = (page) =>
@@ -14,7 +13,7 @@ const renderPage = (page) =>
     canvas.width = viewport.width
 
     page.render(renderContext).promise.then(() => {
-        resolve(canvas.toDataURL()) // Resolve the promise with the result
+        resolve(canvas.toDataURL("image/jpeg")) // Resolve the promise with the result
     })
   })
 
