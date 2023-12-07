@@ -235,13 +235,13 @@ onMounted(() => {
                   style="display: flex; flex-direction: column ;justify-content: center; width: 90%; margin-top: 5px;">
                   <el-input id="apiKey" type="password" v-model="OpenAPIKey" placeholder="OpenAI API Key: sk-....." />
                   <small style="color: rgba(0, 0, 0, 0.4); margin-top: 2px;">
-                    &nbsp;&nbsp;Your key <b>MUST</b> have access to <ins>GPT-4 Vision</ins>, for details you may refer to
-                    <a href="https://github.com/abi/screenshot-to-code/blob/main/Troubleshooting.md"
+                    Your key <b>MUST</b> have access to <a href="https://platform.openai.com/docs/guides/vision" target="_blank">GPT-4 Vision</a>, for details you may refer to
+                    the trouble shooting guide from the <a href="https://github.com/abi/screenshot-to-code/blob/main/Troubleshooting.md"
                       target="_blank">screenshot-to-code</a> Repository.
                   </small>
                   <small style="color: rgba(200, 0, 0, 0.4); margin-top: 2px;">
-                    &nbsp;&nbsp;The frontend-only mode exposes API keys in browser code, which may create security risks.
-                    Keys are recommended to be revoked after use. We promise not to record entries.
+                    The frontend-only mode exposes API keys in browser code, which may create security risks.
+                    Keys are recommended to be <a href="https://platform.openai.com/api-keys" target="_blank">revoked</a> after use. We will not record any entries.
                   </small>
                 </span>
               </div>
