@@ -380,7 +380,7 @@ onMounted(() => {
       <VueForm :key="schemaVersion" v-model="formData" :schema="schema"></VueForm>
     </el-col>
   </el-row>
-  <el-dialog v-model="imagePreviewDialogVisible" title="PDF Image Preview" style="z-index: 10000">
+  <el-dialog v-model="imagePreviewDialogVisible" title="PDF Image Preview" style="z-index: 10000" :width="'93vw'">
     <div style="display: flex; justify-content: center">
       <img :src="imagePreviewUrl" alt="image preview" style="max-width: 90vw;" />
     </div>
