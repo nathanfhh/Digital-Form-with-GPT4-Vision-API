@@ -1,5 +1,6 @@
 import * as pdfjs from 'pdfjs-dist/build/pdf.mjs'
-pdfjs.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.0.269/pdf.worker.mjs"
+pdfjs.GlobalWorkerOptions.workerSrc =
+  'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.0.269/pdf.worker.mjs'
 import { ElNotification } from 'element-plus'
 
 const renderPage = (page) =>
@@ -13,13 +14,14 @@ const renderPage = (page) =>
     canvas.width = viewport.width
 
     page.render(renderContext).promise.then(() => {
-        resolve(canvas.toDataURL("image/jpeg")) // Resolve the promise with the result
+      resolve(canvas.toDataURL('image/jpeg')) // Resolve the promise with the result
     })
   })
 
-export function extractPDF(pdfUrl) {
+export function extractPDF(pdfUrl, handlerObj) {
   var pdf = pdfjs.getDocument(pdfUrl)
-  var maxPages = 3
+  var maxPages = handlerObj.frontendOnlyMaxPDFPages.value
+  console.log(`maxPages=${maxPages}`)
   return pdf.promise.then(function (pdf) {
     var totalPageCount = pdf.numPages
     var countPromises = []
@@ -36,34 +38,33 @@ export function extractPDF(pdfUrl) {
       var page = pdf.getPage(currentPage)
       countPromises.push(
         page.then(async function (page) {
-            var image = await renderPage(page)
-            var textContent = page.getTextContent()
-            return textContent.then(function (text) {
-                return {
-                    txt: text.items
-                        .map(function (s) {
-                            return s.str
-                        })
-                        .join(''),
-                    image: image
-                }
-            })
+          var image = await renderPage(page)
+          var textContent = page.getTextContent()
+          return textContent.then(function (text) {
+            return {
+              txt: text.items
+                .map(function (s) {
+                  return s.str
+                })
+                .join(''),
+              image: image
+            }
+          })
         })
       )
     }
     return Promise.all(countPromises).then((pdfResults) => {
-        console.log(pdfResults)
-        var fullText = []
-        var images = []
-        for (let i in pdfResults){
-            fullText.push(pdfResults[i].txt)
-            images.push(pdfResults[i].image)
-        }
-        return {
-            fullText: fullText.join('\n---***---\n'),
-            images: images
-        }
+      console.log(pdfResults)
+      var fullText = []
+      var images = []
+      for (let i in pdfResults) {
+        fullText.push(pdfResults[i].txt)
+        images.push(pdfResults[i].image)
+      }
+      return {
+        fullText: fullText.join('\n---***---\n'),
+        images: images
+      }
     })
-
   })
 }

@@ -1,13 +1,16 @@
 import { ElNotification } from 'element-plus'
 
-import { extractPDF } from '../pdf.js'
-import { generatePrompt } from '../prompt.js'
-import { inference } from '../openai.js'
-import { BaseHandler } from './base.js'
+import { extractPDF } from './pdf.js'
+import { generatePrompt } from './prompt.js'
+import { inference } from './openai.js'
+import { BaseHandler } from '../base.js'
 
 export class FrontendOnlyHandler extends BaseHandler {
   constructor(apiKey, parameters) {
+    let frontendOnlyMaxPDFPages = parameters.frontendOnlyMaxPDFPages
     super({ name: 'FrontendOnlyHandler', ...parameters })
+    delete parameters.frontendOnlyMaxPDFPages
+    this.frontendOnlyMaxPDFPages = frontendOnlyMaxPDFPages
     this.apiKey = apiKey
   }
   check_api_key() {
@@ -27,7 +30,7 @@ export class FrontendOnlyHandler extends BaseHandler {
   handle_pdf_file(pdfFile) {
     console.log(`${this.name}-handle_pdf_file`)
     if (!this.check_api_key()) return
-    extractPDF({ data: atob(pdfFile.split(',')[1]) }).then(
+    extractPDF({ data: atob(pdfFile.split(',')[1]) }, this).then(
       (pdfData) => {
         ElNotification({
           title: 'PDF 解析完成',
