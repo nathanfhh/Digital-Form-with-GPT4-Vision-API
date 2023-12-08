@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "ai-json-form-backend"
-version = "0.1.0"
+version = "0.1.2"
 description = ""
 authors = ["Nathan <t13762@ms3.sltung.com.tw>"]
 readme = "README.md"
