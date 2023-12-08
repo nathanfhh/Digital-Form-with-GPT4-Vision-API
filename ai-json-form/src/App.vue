@@ -3,12 +3,25 @@ import { createAjvInstance } from './ajvVueForm.js'
 import { ref, watch, defineAsyncComponent, onMounted } from 'vue'
 
 import jsyaml from 'js-yaml'
-import { ElNotification, ElSwitch, ElInput, ElRow, ElCol, ElUpload, ElCarousel, ElCarouselItem, ElTabPane, ElTabs, ElButton } from 'element-plus'
+import {
+  ElNotification,
+  ElSwitch,
+  ElInput,
+  ElRow,
+  ElCol,
+  ElUpload,
+  ElCarousel,
+  ElCarouselItem,
+  ElTabPane,
+  ElTabs,
+  ElButton,
+  ElTag
+} from 'element-plus'
 import { basicSchema } from './configs.js'
 import { codeMirrorConfig } from './codeMirror.js'
 import { getVersion } from './axios.js'
 import { handlers } from './handler'
-
+import { version as fontendVersion } from '../package.json'
 
 window.jsyaml = jsyaml
 const VueForm = defineAsyncComponent(() => import('@lljj/vue3-form-element'))
@@ -29,6 +42,10 @@ const schemaVersion = ref(0)
 const tabContentHeight = ref('')
 const frontendOnly = ref(false)
 const OpenAPIKey = ref('')
+const frontendOnlyMaxPDFPages = ref(parseInt(localStorage.getItem('maxPDFPages')) || 3)
+const frontendVersion = ref(fontendVersion)
+const backendVersion = ref('')
+console.log('Frontend version:', frontendVersion.value)
 
 const { SocketIOBackendHandler, FrontendOnlyHandler } = handlers
 let handler = null
@@ -44,7 +61,10 @@ let handlerParameters = {
 
 const frontendOnlyHandler = () => {
   frontendOnly.value = true
-  handler = new FrontendOnlyHandler(OpenAPIKey, handlerParameters)
+  handler = new FrontendOnlyHandler(OpenAPIKey, {
+    frontendOnlyMaxPDFPages: frontendOnlyMaxPDFPages,
+    ...handlerParameters
+  })
   ElNotification({
     title: '您正使用純前端功能',
     message: '由於無法連接後端，將使用純前端功能，請至 Settings 下填入 OpenAI API Key',
@@ -59,6 +79,8 @@ getVersion()
     console.log(response)
     if (response.status !== 200) return frontendOnlyHandler()
     if (!response.data?.data?.version) return frontendOnlyHandler()
+    backendVersion.value = response.data.data.version
+    console.log('Backend version:', backendVersion.value)
     handler = new SocketIOBackendHandler(handlerParameters)
   })
   .catch((e) => {
@@ -133,6 +155,9 @@ watch(isMock, (newVal) => {
 watch(isDetailHigh, (newVal) => {
   localStorage.setItem('isDetailHigh', newVal)
 })
+watch(frontendOnlyMaxPDFPages, (newVal) => {
+  localStorage.setItem('maxPDFPages', newVal)
+})
 const downloadGeneratedYaml = () => {
   let blob = new Blob([ymlCode.value], { type: 'text/plain;charset=utf-8' })
   let url = window.URL.createObjectURL(blob)
@@ -168,12 +193,22 @@ onMounted(() => {
 <template>
   <el-row :gutter="10" style="margin: 0">
     <el-col :span="12">
-      <el-row class="operation">
+      <el-row class="operation border">
         <el-col :span="8" class="upload-container">
-          <el-upload :disabled="inferencing" ref="uploadPdf" action accept=".pdf" :limit="1" :on-exceed="handleExceed"
-            :before-upload="pdfUploadLogic" :file-list="pdfFileList" :auto-upload="true"
-            :http-request="(x) => x.onSuccess({})" :show-file-list="false">
-            <div slot="trigger" class="icon">
+          <el-upload
+            :disabled="inferencing"
+            ref="uploadPdf"
+            action
+            accept=".pdf"
+            :limit="1"
+            :on-exceed="handleExceed"
+            :before-upload="pdfUploadLogic"
+            :file-list="pdfFileList"
+            :auto-upload="true"
+            :http-request="(x) => x.onSuccess({})"
+            :show-file-list="false"
+          >
+            <div slot="trigger" style="display: flex; align-items: center; flex-direction: column">
               <img style="width: 40px" src="./assets/upload.svg" alt="" /><br />
               <small>點擊上傳PDF</small>
             </div>
@@ -182,9 +217,19 @@ onMounted(() => {
         <el-col :span="16">
           <div id="monitor">
             <div :class="inferencing ? 'scan' : ''"></div>
-            <el-carousel v-if="pdfImageDataList" :autoplay="inferencing" :interval="3500" type="card" height="220px">
+            <el-carousel
+              v-if="pdfImageDataList"
+              :autoplay="inferencing"
+              :interval="3500"
+              type="card"
+              height="220px"
+            >
               <el-carousel-item v-for="url in pdfImageDataList" :key="url">
-                <img :src="url" :class="pdfImageDataList ? 'pdfImage' : 'hide'" alt="pdf screenshot" />
+                <img
+                  :src="url"
+                  :class="pdfImageDataList ? 'pdfImage' : 'hide'"
+                  alt="pdf screenshot"
+                />
               </el-carousel-item>
             </el-carousel>
           </div>
@@ -195,72 +240,145 @@ onMounted(() => {
           <el-tabs v-model="tabActiveName">
             <el-tab-pane label="Schema YAML" name="schemaDefYaml">
               <el-button class="tab-button" type="primary" @click="downloadGeneratedYaml">
-                <img style="width: 20px" src="./assets/download.svg" alt="download button" />&nbsp;下載
+                <img
+                  style="width: 20px"
+                  src="./assets/download.svg"
+                  alt="download button"
+                />&nbsp;下載
               </el-button>
               <div>
-                <Codemirror ref="myCm" v-model:value="ymlCode" :options="cmOptions" :height="tabContentHeight"
-                  @change="onCodeChange" />
+                <Codemirror
+                  ref="myCm"
+                  v-model:value="ymlCode"
+                  :options="cmOptions"
+                  :height="tabContentHeight"
+                  @change="onCodeChange"
+                />
               </div>
             </el-tab-pane>
             <el-tab-pane label="Schema JSON" name="schemaDefJson">
               <el-button class="tab-button" type="primary" @click="downloadGeneratedJSON">
-                <img style="width: 20px" src="./assets/download.svg" alt="download button" />&nbsp;下載
+                <img
+                  style="width: 20px"
+                  src="./assets/download.svg"
+                  alt="download button"
+                />&nbsp;下載
               </el-button>
-              <div name="tabContent" style="overflow: scroll">
+              <div name="tabContent" class="overflow-auto">
                 <pre @click="selectText($event.target)">{{ schema }}</pre>
               </div>
             </el-tab-pane>
             <el-tab-pane label="Form Data" name="formData">
-              <div name="tabContent" style="overflow: scroll">
+              <div name="tabContent" class="overflow-auto">
                 <pre @click="selectText($event.target)">{{ formData }}</pre>
               </div>
             </el-tab-pane>
             <el-tab-pane label="Settings" name="settings">
-              <p>
-                &nbsp;&nbsp;Use AI Model:<br />
-                <span style="display: flex; justify-content: center">
-                  <el-switch v-model="isMock" active-text="Mocked" inactive-text="Real" />
-                </span>
-              </p>
-              <p>
-                &nbsp;&nbsp;OpenAI Image Detail:<br />
-                <span style="display: flex; justify-content: center">
-                  <el-switch v-model="isDetailHigh" active-text="High" inactive-text="Low" />
-                </span>
-              </p>
-              <p v-show="frontendOnly && !isMock">
-                &nbsp;&nbsp;OpenAI API Key (for Frontend Only Mode):<br />
-              <div style="display: flex; justify-content: center;">
-                <span
-                  style="display: flex; flex-direction: column ;justify-content: center; width: 90%; margin-top: 5px;">
-                  <el-input id="apiKey" type="password" v-model="OpenAPIKey" placeholder="OpenAI API Key: sk-....." />
-                  <small style="color: rgba(0, 0, 0, 0.4); margin-top: 2px;">
-                    Your key <b>MUST</b> have access to <a href="https://platform.openai.com/docs/guides/vision" target="_blank">GPT-4 Vision</a>, for details you may refer to
-                    the trouble shooting guide from the <a href="https://github.com/abi/screenshot-to-code/blob/main/Troubleshooting.md"
-                      target="_blank">screenshot-to-code</a> Repository.
-                  </small>
-                  <small style="color: rgba(200, 0, 0, 0.4); margin-top: 2px;">
-                    The frontend-only mode exposes API keys in browser code, which may create security risks.
-                    Keys are recommended to be <a href="https://platform.openai.com/api-keys" target="_blank">revoked</a> after use. We will not record any entries.
-                  </small>
-                </span>
+              <div name="tabContent" class="overflow-auto">
+                <p>
+                  &nbsp;&nbsp;Use AI Model:<br />
+                  <span style="display: flex; justify-content: center">
+                    <el-switch v-model="isMock" active-text="Mocked" inactive-text="Real" />
+                  </span>
+                </p>
+                <p>
+                  &nbsp;&nbsp;OpenAI Image Detail:<br />
+                  <span style="display: flex; justify-content: center">
+                    <el-switch v-model="isDetailHigh" active-text="High" inactive-text="Low" />
+                  </span>
+                </p>
+                <Transition>
+                  <p v-show="frontendOnly && !isMock">
+                    &nbsp;&nbsp;OpenAI API Key (for Frontend Only Mode):<br />
+                    <span style="display: flex; justify-content: center">
+                      <span
+                        style="
+                          display: flex;
+                          flex-direction: column;
+                          justify-content: center;
+                          width: 90%;
+                          margin-top: 5px;
+                        "
+                      >
+                        <el-input
+                          id="apiKey"
+                          type="password"
+                          v-model="OpenAPIKey"
+                          placeholder="OpenAI API Key: sk-....."
+                        />
+                        <small style="color: rgba(0, 0, 0, 0.7); margin-top: 2px">
+                          Your key <b>MUST</b> have access to
+                          <a href="https://platform.openai.com/docs/guides/vision" target="_blank"
+                            >GPT-4 Vision</a
+                          >, for details you may refer to the trouble shooting guide from the
+                          <a
+                            href="https://github.com/abi/screenshot-to-code/blob/main/Troubleshooting.md"
+                            target="_blank"
+                            >screenshot-to-code</a
+                          >
+                          repository.
+                        </small>
+                        <small style="color: rgba(200, 0, 0, 0.7); margin-top: 2px">
+                          The frontend-only mode exposes API keys in browser code, which may create
+                          security risks. Keys are recommended to be
+                          <a href="https://platform.openai.com/api-keys" target="_blank">revoked</a>
+                          after use. We will not record any entries.
+                        </small>
+                      </span>
+                    </span>
+                  </p>
+                </Transition>
+                <Transition>
+                  <p v-show="frontendOnly && !isMock">
+                    &nbsp;&nbsp;Max PDF Pages:<br />
+                    <span style="display: flex; justify-content: center">
+                      <el-input-number v-model="frontendOnlyMaxPDFPages" :min="1" :max="10" />
+                    </span>
+                  </p>
+                </Transition>
+                <p>
+                  &nbsp;&nbsp;Version Information:<br />
+                  <span style="display: flex; justify-content: space-evenly">
+                    <el-tag class="ml-2" type="success">Frontend: {{ frontendVersion }}</el-tag>
+                    <el-tag v-show="!frontendOnly" class="ml-2" type="success"
+                      >Backend: {{ backendVersion }}</el-tag
+                    >
+                  </span>
+                </p>
+                <p>
+                  &nbsp;&nbsp;Source Code on Github:<br />
+                  <span style="display: flex; justify-content: center">
+                    <a
+                      target="_blank"
+                      href="https://github.com/nathanfhh/Digital-Form-with-GPT4-Vision-API"
+                    >
+                      <img
+                        style="margin-top: 2px; width: 40px"
+                        src="./assets/github-mark.svg"
+                        alt="github button"
+                      />
+                    </a>
+                  </span>
+                </p>
               </div>
-              </p>
             </el-tab-pane>
           </el-tabs>
         </el-col>
       </el-row>
     </el-col>
-    <el-col :span="12" style="overflow-y: scroll; height: calc(100vh - 5px)">
+    <el-col class="border" :span="12" style="overflow-y: auto; height: calc(100vh - 6px)">
       <VueForm :key="schemaVersion" v-model="formData" :schema="schema"></VueForm>
     </el-col>
   </el-row>
 </template>
 
 <style scoped>
-.operation {
+.border {
+  padding: 1px;
   border-radius: 5px;
   border: 1px solid #ccc;
+}
+.operation {
   height: 220px;
 }
 
@@ -285,7 +403,6 @@ onMounted(() => {
   justify-content: space-evenly;
   align-items: center;
   padding: 0 10px;
-  /* overflow: scroll; */
 }
 
 .scan {
@@ -303,7 +420,6 @@ onMounted(() => {
 }
 
 @keyframes scan {
-
   0%,
   100% {
     -webkit-transform: translateY(0);
@@ -336,5 +452,25 @@ pre {
   right: 0;
   position: absolute;
   z-index: 1;
+}
+.overflow-auto {
+  overflow: auto;
+}
+.v-enter-active {
+  animation: bounce-in 0.5s;
+}
+.v-leave-active {
+  animation: bounce-in 0.5s reverse;
+}
+@keyframes bounce-in {
+  0% {
+    transform: scale(0);
+  }
+  50% {
+    transform: scale(1.15);
+  }
+  100% {
+    transform: scale(1);
+  }
 }
 </style>
