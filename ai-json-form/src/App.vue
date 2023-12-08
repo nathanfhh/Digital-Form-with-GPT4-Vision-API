@@ -382,7 +382,7 @@ onMounted(() => {
   </el-row>
   <el-dialog v-model="imagePreviewDialogVisible" title="PDF Image Preview" style="z-index: 10000">
     <div style="display: flex; justify-content: center">
-      <img :src="imagePreviewUrl" alt="image preview" />
+      <img :src="imagePreviewUrl" alt="image preview" style="max-width: 90vw;" />
     </div>
   </el-dialog>
 </template>
