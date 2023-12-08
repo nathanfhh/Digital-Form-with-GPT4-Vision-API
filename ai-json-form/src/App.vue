@@ -15,7 +15,8 @@ import {
   ElTabPane,
   ElTabs,
   ElButton,
-  ElTag
+  ElTag,
+  ElDialog
 } from 'element-plus'
 import { basicSchema } from './configs.js'
 import { codeMirrorConfig } from './codeMirror.js'
@@ -45,8 +46,10 @@ const OpenAPIKey = ref('')
 const frontendOnlyMaxPDFPages = ref(parseInt(localStorage.getItem('maxPDFPages')) || 3)
 const frontendVersion = ref(fontendVersion)
 const backendVersion = ref('')
-console.log('Frontend version:', frontendVersion.value)
+const imagePreviewDialogVisible = ref(false)
+const imagePreviewUrl = ref('')
 
+console.log('Frontend version:', frontendVersion.value)
 const { SocketIOBackendHandler, FrontendOnlyHandler } = handlers
 let handler = null
 let handlerParameters = {
@@ -208,7 +211,7 @@ onMounted(() => {
             :http-request="(x) => x.onSuccess({})"
             :show-file-list="false"
           >
-            <div slot="trigger" style="display: flex; align-items: center; flex-direction: column">
+            <div slot="trigger" class="upload">
               <img style="width: 40px" src="./assets/upload.svg" alt="" /><br />
               <small>點擊上傳PDF</small>
             </div>
@@ -221,6 +224,7 @@ onMounted(() => {
               v-if="pdfImageDataList"
               :autoplay="inferencing"
               :interval="3500"
+              indicator-position="none"
               type="card"
               height="220px"
             >
@@ -229,6 +233,12 @@ onMounted(() => {
                   :src="url"
                   :class="pdfImageDataList ? 'pdfImage' : 'hide'"
                   alt="pdf screenshot"
+                  @click="
+                    () => {
+                      imagePreviewUrl = url
+                      imagePreviewDialogVisible = true
+                    }
+                  "
                 />
               </el-carousel-item>
             </el-carousel>
@@ -319,10 +329,10 @@ onMounted(() => {
                           repository.
                         </small>
                         <small style="color: rgba(200, 0, 0, 0.7); margin-top: 2px">
-                          The frontend-only mode exposes API keys in browser code, which may create
-                          security risks. Keys are recommended to be
+                          Entering credentials on the frontend may expose them to threat actors. For
+                          security, entries are not saved and users is recommended to
                           <a href="https://platform.openai.com/api-keys" target="_blank">revoked</a>
-                          after use. We will not record any entries.
+                          the key after potential exposure.
                         </small>
                       </span>
                     </span>
@@ -370,6 +380,11 @@ onMounted(() => {
       <VueForm :key="schemaVersion" v-model="formData" :schema="schema"></VueForm>
     </el-col>
   </el-row>
+  <el-dialog v-model="imagePreviewDialogVisible" title="PDF Image Preview" style="z-index: 10000">
+    <div style="display: flex; justify-content: center">
+      <img :src="imagePreviewUrl" alt="image preview" />
+    </div>
+  </el-dialog>
 </template>
 
 <style scoped>
@@ -382,9 +397,10 @@ onMounted(() => {
   height: 220px;
 }
 
-.el-carousel__container,
 .el-carousel__item {
-  height: 200px;
+  display: flex;
+  align-items: center;
+  overflow: visible;
 }
 
 .hide {
@@ -404,14 +420,19 @@ onMounted(() => {
   align-items: center;
   padding: 0 10px;
 }
-
+.upload {
+  display: flex;
+  align-items: center;
+  flex-direction: column;
+  text-align: center;
+}
 .scan {
   width: 75%;
   height: 10px;
   background-color: rgba(238, 72, 72, 0.8);
   position: absolute;
   left: 12.5%;
-  z-index: 9999;
+  z-index: 1000;
   -moz-animation: scan 5s infinite;
   -webkit-animation: scan 5s infinite;
   animation: scan 5s infinite;
