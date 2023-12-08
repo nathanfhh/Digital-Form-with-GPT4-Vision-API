@@ -28,7 +28,7 @@ export function extractPDF(pdfUrl, handlerObj) {
     if (totalPageCount > maxPages) {
       ElNotification({
         title: '錯誤',
-        message: `PDF 頁數過多(至多${maxPages}頁)`,
+        message: `PDF 頁數過多(您的檔案有${totalPageCount}頁，目前設定至多${maxPages}頁)`,
         type: 'error',
         duration: 2000
       })
