@@ -212,8 +212,13 @@ onMounted(() => {
             :show-file-list="false"
           >
             <div slot="trigger" class="upload">
-              <img style="width: 40px" src="./assets/upload.svg" alt="" /><br />
-              <small>點擊上傳PDF</small>
+              <img
+                :style="inferencing ? 'cursor: not-allowed' : ''"
+                style="width: 40px"
+                src="./assets/upload.svg"
+                alt=""
+              /><br />
+              <small :style="inferencing ? 'cursor: not-allowed' : ''">點擊上傳PDF</small>
             </div>
           </el-upload>
         </el-col>
@@ -380,9 +385,14 @@ onMounted(() => {
       <VueForm :key="schemaVersion" v-model="formData" :schema="schema"></VueForm>
     </el-col>
   </el-row>
-  <el-dialog v-model="imagePreviewDialogVisible" title="PDF Image Preview" style="z-index: 10000" :width="'93vw'">
+  <el-dialog
+    v-model="imagePreviewDialogVisible"
+    title="PDF Image Preview"
+    style="z-index: 10000"
+    :width="'93vw'"
+  >
     <div style="display: flex; justify-content: center">
-      <img :src="imagePreviewUrl" alt="image preview" style="max-width: 90vw;" />
+      <img :src="imagePreviewUrl" alt="image preview" style="max-width: 90vw" />
     </div>
   </el-dialog>
 </template>
