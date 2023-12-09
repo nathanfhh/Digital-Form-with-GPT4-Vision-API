@@ -10,6 +10,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@element-plus/icons-vue": "^2.3.1",
     "@jsonforms/core": "^3.1.0",
     "@jsonforms/vue": "^3.1.0",
     "@jsonforms/vue-vanilla": "^3.1.0",

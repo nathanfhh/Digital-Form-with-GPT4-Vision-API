@@ -18,6 +18,10 @@ import {
   ElTag,
   ElDialog
 } from 'element-plus'
+import {
+  ArrowLeft, 
+  ArrowRight
+} from '@element-plus/icons-vue'
 import { basicSchema } from './configs.js'
 import { codeMirrorConfig } from './codeMirror.js'
 import { getVersion } from './axios.js'
@@ -48,9 +52,11 @@ const frontendVersion = ref(fontendVersion)
 const backendVersion = ref('')
 const imagePreviewDialogVisible = ref(false)
 const imagePreviewUrl = ref('')
+const leftColSpan = ref(12)
 
 console.log('Frontend version:', frontendVersion.value)
 const { SocketIOBackendHandler, FrontendOnlyHandler } = handlers
+const leastColSpan = 4;
 let handler = null
 let handlerParameters = {
   inferencing: inferencing,
@@ -195,56 +201,36 @@ onMounted(() => {
 </script>
 <template>
   <el-row :gutter="10" style="margin: 0">
-    <el-col :span="12">
+    <el-col :span="leftColSpan">
       <el-row class="operation border">
         <el-col :span="8" class="upload-container">
-          <el-upload
-            :disabled="inferencing"
-            ref="uploadPdf"
-            action
-            accept=".pdf"
-            :limit="1"
-            :on-exceed="handleExceed"
-            :before-upload="pdfUploadLogic"
-            :file-list="pdfFileList"
-            :auto-upload="true"
-            :http-request="(x) => x.onSuccess({})"
-            :show-file-list="false"
-          >
+          <el-upload :disabled="inferencing" ref="uploadPdf" action accept=".pdf" :limit="1" :on-exceed="handleExceed"
+            :before-upload="pdfUploadLogic" :file-list="pdfFileList" :auto-upload="true"
+            :http-request="(x) => x.onSuccess({})" :show-file-list="false">
             <div slot="trigger" class="upload">
-              <img
-                :style="inferencing ? 'cursor: not-allowed' : ''"
-                style="width: 40px"
-                src="./assets/upload.svg"
-                alt=""
-              /><br />
+              <img :style="inferencing ? 'cursor: not-allowed' : ''" style="width: 40px" src="./assets/upload.svg"
+                alt="" /><br />
               <small :style="inferencing ? 'cursor: not-allowed' : ''">點擊上傳PDF</small>
             </div>
           </el-upload>
         </el-col>
         <el-col :span="16">
+          <div style="position: absolute; top: 2px; right: 2px; z-index: 1000;">
+            <el-button circle type="success"
+              @click="() => { leftColSpan <= leastColSpan ? leftColSpan = 12 : leftColSpan = leastColSpan }"
+              :icon="leftColSpan <= leastColSpan ? ArrowRight : ArrowLeft">
+            </el-button>
+          </div>
           <div id="monitor">
             <div :class="inferencing ? 'scan' : ''"></div>
-            <el-carousel
-              v-if="pdfImageDataList"
-              :autoplay="inferencing"
-              :interval="3500"
-              indicator-position="none"
-              type="card"
-              height="220px"
-            >
+            <el-carousel v-if="pdfImageDataList" :autoplay="inferencing" :interval="3500" indicator-position="none"
+              type="card" height="220px">
               <el-carousel-item v-for="url in pdfImageDataList" :key="url">
-                <img
-                  :src="url"
-                  :class="pdfImageDataList ? 'pdfImage' : 'hide'"
-                  alt="pdf screenshot"
-                  @click="
-                    () => {
-                      imagePreviewUrl = url
-                      imagePreviewDialogVisible = true
-                    }
-                  "
-                />
+                <img :src="url" :class="pdfImageDataList ? 'pdfImage' : 'hide'" alt="pdf screenshot" @click="() => {
+                  imagePreviewUrl = url
+                  imagePreviewDialogVisible = true
+                }
+                  " />
               </el-carousel-item>
             </el-carousel>
           </div>
@@ -255,29 +241,16 @@ onMounted(() => {
           <el-tabs v-model="tabActiveName">
             <el-tab-pane label="Schema YAML" name="schemaDefYaml">
               <el-button class="tab-button" type="primary" @click="downloadGeneratedYaml">
-                <img
-                  style="width: 20px"
-                  src="./assets/download.svg"
-                  alt="download button"
-                />&nbsp;下載
+                <img style="width: 20px" src="./assets/download.svg" alt="download button" />&nbsp;下載
               </el-button>
               <div>
-                <Codemirror
-                  ref="myCm"
-                  v-model:value="ymlCode"
-                  :options="cmOptions"
-                  :height="tabContentHeight"
-                  @change="onCodeChange"
-                />
+                <Codemirror ref="myCm" v-model:value="ymlCode" :options="cmOptions" :height="tabContentHeight"
+                  @change="onCodeChange" />
               </div>
             </el-tab-pane>
             <el-tab-pane label="Schema JSON" name="schemaDefJson">
               <el-button class="tab-button" type="primary" @click="downloadGeneratedJSON">
-                <img
-                  style="width: 20px"
-                  src="./assets/download.svg"
-                  alt="download button"
-                />&nbsp;下載
+                <img style="width: 20px" src="./assets/download.svg" alt="download button" />&nbsp;下載
               </el-button>
               <div name="tabContent" class="overflow-auto">
                 <pre @click="selectText($event.target)">{{ schema }}</pre>
@@ -306,31 +279,21 @@ onMounted(() => {
                   <p v-show="frontendOnly && !isMock">
                     &nbsp;&nbsp;OpenAI API Key (for Frontend Only Mode):<br />
                     <span style="display: flex; justify-content: center">
-                      <span
-                        style="
+                      <span style="
                           display: flex;
                           flex-direction: column;
                           justify-content: center;
                           width: 90%;
                           margin-top: 5px;
-                        "
-                      >
-                        <el-input
-                          id="apiKey"
-                          type="password"
-                          v-model="OpenAPIKey"
-                          placeholder="OpenAI API Key: sk-....."
-                        />
+                        ">
+                        <el-input id="apiKey" type="password" v-model="OpenAPIKey"
+                          placeholder="OpenAI API Key: sk-....." />
                         <small style="color: rgba(0, 0, 0, 0.7); margin-top: 2px">
                           Your key <b>MUST</b> have access to
-                          <a href="https://platform.openai.com/docs/guides/vision" target="_blank"
-                            >GPT-4 Vision</a
-                          >, for details you may refer to the trouble shooting guide from the
-                          <a
-                            href="https://github.com/abi/screenshot-to-code/blob/main/Troubleshooting.md"
-                            target="_blank"
-                            >screenshot-to-code</a
-                          >
+                          <a href="https://platform.openai.com/docs/guides/vision" target="_blank">GPT-4 Vision</a>, for
+                          details you may refer to the trouble shooting guide from the
+                          <a href="https://github.com/abi/screenshot-to-code/blob/main/Troubleshooting.md"
+                            target="_blank">screenshot-to-code</a>
                           repository.
                         </small>
                         <small style="color: rgba(200, 0, 0, 0.7); margin-top: 2px">
@@ -355,23 +318,14 @@ onMounted(() => {
                   &nbsp;&nbsp;Version Information:<br />
                   <span style="display: flex; justify-content: space-evenly">
                     <el-tag class="ml-2" type="success">Frontend: {{ frontendVersion }}</el-tag>
-                    <el-tag v-show="!frontendOnly" class="ml-2" type="success"
-                      >Backend: {{ backendVersion }}</el-tag
-                    >
+                    <el-tag v-show="!frontendOnly" class="ml-2" type="success">Backend: {{ backendVersion }}</el-tag>
                   </span>
                 </p>
                 <p>
                   &nbsp;&nbsp;Source Code on Github:<br />
                   <span style="display: flex; justify-content: center">
-                    <a
-                      target="_blank"
-                      href="https://github.com/nathanfhh/Digital-Form-with-GPT4-Vision-API"
-                    >
-                      <img
-                        style="margin-top: 2px; width: 40px"
-                        src="./assets/github-mark.svg"
-                        alt="github button"
-                      />
+                    <a target="_blank" href="https://github.com/nathanfhh/Digital-Form-with-GPT4-Vision-API">
+                      <img style="margin-top: 2px; width: 40px" src="./assets/github-mark.svg" alt="github button" />
                     </a>
                   </span>
                 </p>
@@ -381,16 +335,11 @@ onMounted(() => {
         </el-col>
       </el-row>
     </el-col>
-    <el-col class="border" :span="12" style="overflow-y: auto; height: calc(100vh - 6px)">
+    <el-col class="border" :span="24 - leftColSpan" style="overflow-y: auto; height: calc(100vh - 6px)">
       <VueForm :key="schemaVersion" v-model="formData" :schema="schema"></VueForm>
     </el-col>
   </el-row>
-  <el-dialog
-    v-model="imagePreviewDialogVisible"
-    title="PDF Image Preview"
-    style="z-index: 10000"
-    :width="'93vw'"
-  >
+  <el-dialog v-model="imagePreviewDialogVisible" title="PDF Image Preview" style="z-index: 10000" :width="'93vw'">
     <div style="display: flex; justify-content: center">
       <img :src="imagePreviewUrl" alt="image preview" style="max-width: 90vw" />
     </div>
@@ -403,6 +352,7 @@ onMounted(() => {
   border-radius: 5px;
   border: 1px solid #ccc;
 }
+
 .operation {
   height: 220px;
 }
@@ -430,12 +380,14 @@ onMounted(() => {
   align-items: center;
   padding: 0 10px;
 }
+
 .upload {
   display: flex;
   align-items: center;
   flex-direction: column;
   text-align: center;
 }
+
 .scan {
   width: 75%;
   height: 10px;
@@ -451,6 +403,7 @@ onMounted(() => {
 }
 
 @keyframes scan {
+
   0%,
   100% {
     -webkit-transform: translateY(0);
@@ -484,22 +437,28 @@ pre {
   position: absolute;
   z-index: 1;
 }
+
 .overflow-auto {
   overflow: auto;
 }
+
 .v-enter-active {
   animation: bounce-in 0.5s;
 }
+
 .v-leave-active {
   animation: bounce-in 0.5s reverse;
 }
+
 @keyframes bounce-in {
   0% {
     transform: scale(0);
   }
+
   50% {
     transform: scale(1.15);
   }
+
   100% {
     transform: scale(1);
   }
