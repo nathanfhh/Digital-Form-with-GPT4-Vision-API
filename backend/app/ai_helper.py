@@ -1,4 +1,5 @@
 import base64
+import logging
 import os
 import time
 from pathlib import Path
@@ -6,36 +7,16 @@ from typing import Callable
 
 from openai import OpenAI
 
-MODEL_GPT_4_VISION = "gpt-4-vision-preview"
+USE_MODEL = "gpt-4.1"
 CURRENT_DIR = Path(__file__).absolute().parent
-with open(CURRENT_DIR / "example.yml", "r") as f:
-    example_yml = f.read()
+
 with open(CURRENT_DIR / "mock.txt", "r") as mock_file:
     MOCKED_RESPONSE = mock_file.readlines()
 
-SYSTEM_PROMPT = """
-You are an expert in building digital forms using JSONForms from https://jsonforms.io/.
-You take screenshots of a paper form from a client, and then you use JSONForms to build a digital form.
+SYSTEM_PROMPT = (Path(__file__).absolute().parent.parent.parent / "ai-json-form/src/handler/frontend/promptTemplate.md").read_text()
 
-IMPORTANT: 
-  1. You MUST use the text in the screenshots and DO NOT come up with your own idea. The form should be read top to bottom, left to right. Read it as if you are the filler of the form and read it clearly and carefully.
-  2. The name of the JSONForms will be the title in the screenshot.
-  3. In the screenshot if it's a square, it is highly likely to be a CHECKBOX question. If you subsequently find out that it is a checkbox, you should also consider if an option is exclusive, e.g `無` and `以上皆無` in the options.
-  4. The indentation of the YAML definition file should be 2 spaces.
-
-Return only the full YAML definition of the form.
-Do not include markdown "```" or "```yaml" at the start or end.
-To make you more familiarized with the task, the following YAML corresponds to the first screenshot provided to you and you should generate the YAML definition file starting from the second screenshot:
-```yaml
-{{example_yml}}
-```
-To prevent you from hallucination, I'll provide the text directly copied from PDF in the screenshots, each page is separated by `---***---`, but the order of the text may be chaotic:
-```plaintext
-{{target_txt}}
-```
-"""
 USER_PROMPT = """
-Generate YAML definition file from screenshots of a paper form using the schema defined by JSONForms.
+Generate YAML definition file from screenshots of a paper form using the schema defined by SurveyJS.
 """
 
 
@@ -79,27 +60,39 @@ def stream_openai_response(messages, callables: dict[str, Callable], is_mock):
     else:
         try:
             response = create_openai_client().chat.completions.create(**{
-                "model": MODEL_GPT_4_VISION,
+                "model": USE_MODEL,
                 "messages": messages,
                 "stream": True,
                 "timeout": 600,
-                "max_tokens": 4096,
+                "max_tokens": 8192,
                 "temperature": 0,
+                "stream_options": {
+                    "include_usage": True
+                }
             })
         except Exception as e:
-            print(e)
+            logging.error("OpenAI API Error", exc_info=e)
             callables['notify_frontend'](f"OpenAI API Error", type_="error")
-            return None
+            return {"full_response": "", "usage": None}
     full_response = ""
     buffer = ""
+    usage = None
     for chunk in response:
-        content = chunk if is_mock else (chunk.choices[0].delta.content or "")
+        if is_mock:
+            content = chunk
+        else:
+            content = (chunk.choices[0].delta.content if chunk.choices else "") or ""
         full_response += content
         buffer += content
         if buffer and buffer.endswith("\n"):
             callables['socket_emit_private']({"cmd": "ai_response", "data": buffer})
             buffer = ""
-    return full_response
+        if getattr(chunk, "usage", None):
+            usage = chunk.usage.model_dump(mode="json")
+    return {
+        "full_response": full_response,
+        "usage": usage
+    }
 
 
 def generate_prompt(configs: dict):
@@ -110,10 +103,7 @@ def generate_prompt(configs: dict):
     return [
         {
             "role": "system",
-            "content": SYSTEM_PROMPT.replace(
-                "{{example_yml}}", example_yml).replace(
-                "{{target_txt}}", configs["pdf_text"]
-            ),
+            "content": SYSTEM_PROMPT.replace("{{target_txt}}", configs["pdf_text"]),
         },
         {
             "role": "user",

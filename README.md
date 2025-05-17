@@ -1,6 +1,6 @@
 # PDF to Digital Form using GPT4 Vision API
 
-A POC that uses GPT 4 Vision API to generate a digital form from an Image using JSON Forms from [https://jsonforms.io/](https://jsonforms.io/)
+A POC that uses GPT 4 Vision API to generate a digital form from an Image using SurveyJS from [https://surveyjs.io/](https://surveyjs.io/)
 
 💭 Inspired by:
 
@@ -83,10 +83,10 @@ echo "OPENAI_API_KEY=YOUR_API_KEY" > .env
 echo "OPENAI_ORG=YOUR_ORG" >> .env
 ```
 
-2. Run the docker-compose
+2. Run the `docker compose` command
 
 ```sh
-docker-compose up --build
+docker compose up --build
 ```
 
 3. Open the browser and visit `http://localhost:8080/aijsv/`
