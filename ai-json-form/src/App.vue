@@ -28,7 +28,7 @@ import {codeMirrorConfig} from './codeMirror.js'
 import {getVersion} from './axios.js'
 import {handlers} from './handler'
 import {version as fontendVersion} from '../package.json'
-import {useModel} from "./handler/frontend/openai.js";
+import {defaultModelUse, llmModelConfigs} from "./handler/frontend/openai.js";
 
 window.jsyaml = jsyaml
 const Codemirror = defineAsyncComponent(() => import('codemirror-editor-vue3'))
@@ -54,6 +54,7 @@ const imagePreviewDialogVisible = ref(false)
 const imagePreviewUrl = ref('')
 const leftColSpan = ref(12)
 const reloadKey = ref(0)
+const llmModelUsing = ref(localStorage.getItem("llmModelUsing") || defaultModelUse)
 
 watch(OpenAPIKey, (newVal) => {
   localStorage.setItem('OpenAPIKey', newVal)
@@ -78,7 +79,8 @@ let handlerParameters = {
   pdfImageDataList: pdfImageDataList,
   isDetailHigh: isDetailHigh,
   isMock: isMock,
-  tabActiveName: tabActiveName
+  tabActiveName: tabActiveName,
+  modelUse: llmModelUsing
 }
 
 const frontendOnlyHandler = () => {
@@ -150,7 +152,6 @@ const onCodeChange = (code) => {
             const target = document.querySelector(".sd-navigation__complete-btn");
             if (!target) return
             try {
-              console.log("Scroll surveyjs")
               target.scrollIntoView({behavior: 'instant', block: 'end'});
             } catch (e) {
             }
@@ -204,6 +205,9 @@ watch(isDetailHigh, (newVal) => {
 watch(frontendOnlyMaxPDFPages, (newVal) => {
   localStorage.setItem('maxPDFPages', newVal)
 })
+watch(llmModelUsing, (newValue) => {
+  localStorage.setItem('llmModelUsing', newValue)
+})
 const downloadGeneratedYaml = () => {
   let blob = new Blob([ymlCode.value], {type: 'text/plain;charset=utf-8'})
   let url = window.URL.createObjectURL(blob)
@@ -235,6 +239,15 @@ onMounted(() => {
   window.addEventListener('resize', adjustTabContentHeight)
   adjustTabContentHeight()
 })
+const switchModel = (modelName) => {
+  llmModelUsing.value = modelName
+  ElNotification({
+    title: '模型已切換',
+    message: `當前使用的模型為 ${modelName}`,
+    type: 'success',
+    duration: 2000
+  })
+}
 </script>
 <template>
   <el-row :gutter="10" style="margin: 0">
@@ -260,7 +273,8 @@ onMounted(() => {
           </div>
           <div id="monitor">
             <div :class="inferencing ? 'scan' : ''"></div>
-            <el-carousel v-if="pdfImageDataList" :autoplay="inferencing" :interval="3500" indicator-position="none"
+            <el-carousel v-if="pdfImageDataList.length > 0" :autoplay="inferencing" :interval="3500"
+                         indicator-position="none"
                          type="card" height="220px">
               <el-carousel-item v-for="url in pdfImageDataList" :key="url">
                 <img :src="url" :class="pdfImageDataList ? 'pdfImage' : 'hide'" alt="pdf screenshot" @click="() => {
@@ -296,15 +310,21 @@ onMounted(() => {
             <el-tab-pane label="Form Data" name="formData">
               <div name="tabContent" class="overflow-auto">
                 <pre @click="selectText($event.target)">{{ formData }}</pre>
-                <h3 v-show="!formData || Object.keys(formData).length === 0">提交表單後答案將呈現於此處</h3>
+                <div style="text-align: center">
+                  <h3 v-show="!formData || Object.keys(formData).length === 0">提交表單後答案將呈現於此處</h3>
+                </div>
               </div>
             </el-tab-pane>
             <el-tab-pane label="Settings" name="settings">
               <div name="tabContent" class="overflow-auto">
                 <p>
                   &nbsp;&nbsp;LLM Model: <br>
-                  <span style="display: flex; justify-content: center">
-                    <el-tag type="success">{{ useModel }}</el-tag>
+                  <span style="display: flex; justify-content: space-around">
+                    <el-tag
+                        v-for="modelName in Object.keys(llmModelConfigs)"
+                        :type="modelName === llmModelUsing ? 'success' : 'info'"
+                        @click="switchModel(modelName)"
+                    >{{ modelName }}</el-tag>
                   </span>
                 </p>
                 <p>
