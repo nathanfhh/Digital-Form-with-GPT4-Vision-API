@@ -1,13 +1,13 @@
-# PDF to Digital Form using GPT4 Vision API
+# PDF to Digital Form using GPT4.1 API
 
-A POC that uses GPT 4 Vision API to generate a digital form from an Image using SurveyJS from [https://surveyjs.io/](https://surveyjs.io/)
+A POC that uses GPT 4.1 API to generate a digital form from an Image using SurveyJS from [https://surveyjs.io/](https://surveyjs.io/)
 
 💭 Inspired by:
 
 1. [screenshot-to-code](https://github.com/abi/screenshot-to-code)：https://github.com/abi/screenshot-to-code
 2. [draw-a-ui](https://github.com/SawyerHood/draw-a-ui)：https://github.com/SawyerHood/draw-a-ui
 
-Both repositories demonstrate that the GPT4 Vision API can be used to generate a UI from an image and can recognize the
+Both repositories demonstrate that the GPT 4.1 API can be used to generate a UI from an image and can recognize the
 patterns and structure of the layout provided in the image.
 
 ![figure](./shibaInu.jpeg)
@@ -108,7 +108,7 @@ suggestions, please feel free to PR.
     - Read the PDF file, convert it to a JPG image, and save it to the /tmp folder using the package `pdf2image`.
     - Extract the strings from the same PDF file using the package `PyPDF2`. The extracted strings will become part of
       the prompt sent to the GPT4 model to enhance accuracy.
-    - Prepare the prompts and send them along with the PDF screenshot to the GPT4 Vision API
+    - Prepare the prompts and send them along with the PDF screenshot to the GPT 4.1 API
     - Send the chunk to the frontend via Socket.IO incrementally.
 
 3. Whenever the frontend receives the chunk, it appends it to the `codemirror` editor, and checks if the
