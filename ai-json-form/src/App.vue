@@ -1,8 +1,7 @@
 <script setup>
-import { ref, watch, defineAsyncComponent, onMounted } from 'vue'
-import { SurveyModel } from 'survey-core'
-import { Survey } from 'survey-vue3-ui'
-import 'survey-core/defaultV2.min.css'
+import {ref, watch, defineAsyncComponent, onMounted, nextTick} from 'vue'
+import {SurveyModel} from 'survey-core'
+import 'survey-core/survey-core.css';
 
 import jsyaml from 'js-yaml'
 import {
@@ -21,19 +20,20 @@ import {
   ElDialog
 } from 'element-plus'
 import {
-  ArrowLeft, 
+  ArrowLeft,
   ArrowRight
 } from '@element-plus/icons-vue'
-import { basicSchema } from './configs.js'
-import { codeMirrorConfig } from './codeMirror.js'
-import { getVersion } from './axios.js'
-import { handlers } from './handler'
-import { version as fontendVersion } from '../package.json'
+import {basicSchema} from './configs.js'
+import {codeMirrorConfig} from './codeMirror.js'
+import {getVersion} from './axios.js'
+import {handlers} from './handler'
+import {version as fontendVersion} from '../package.json'
+import {useModel} from "./handler/frontend/openai.js";
 
 window.jsyaml = jsyaml
 const Codemirror = defineAsyncComponent(() => import('codemirror-editor-vue3'))
 const surveyJson = ref(basicSchema)
-const surveyModel = ref(new SurveyModel(surveyJson.value))
+const surveyModel = ref(null)
 const formData = ref()
 const cmOptions = ref(codeMirrorConfig)
 const ymlCode = ref(jsyaml.dump(surveyJson.value) || '')
@@ -46,16 +46,30 @@ const isMock = ref(localStorage.getItem('isMock') === 'true')
 const isDetailHigh = ref(localStorage.getItem('isDetailHigh') === 'true')
 const tabContentHeight = ref('')
 const frontendOnly = ref(false)
-const OpenAPIKey = ref('')
+const OpenAPIKey = ref(localStorage.getItem('OpenAPIKey') || '')
 const frontendOnlyMaxPDFPages = ref(parseInt(localStorage.getItem('maxPDFPages')) || 3)
 const frontendVersion = ref(fontendVersion)
 const backendVersion = ref('')
 const imagePreviewDialogVisible = ref(false)
 const imagePreviewUrl = ref('')
 const leftColSpan = ref(12)
+const reloadKey = ref(0)
+
+watch(OpenAPIKey, (newVal) => {
+  localStorage.setItem('OpenAPIKey', newVal)
+})
+
+
+function debounce(func, delay) {
+  let timeout;
+  return function (...args) {
+    clearTimeout(timeout);
+    timeout = setTimeout(() => func.apply(this, args), delay);
+  };
+}
 
 console.log('Frontend version:', frontendVersion.value)
-const { SocketIOBackendHandler, FrontendOnlyHandler } = handlers
+const {SocketIOBackendHandler, FrontendOnlyHandler} = handlers
 const leastColSpan = 4;
 let handler = null
 let handlerParameters = {
@@ -83,47 +97,65 @@ const frontendOnlyHandler = () => {
   tabActiveName.value = 'settings'
 }
 getVersion()
-  .then((response) => {
-    console.log(response)
-    if (response.status !== 200) return frontendOnlyHandler()
-    if (!response.data?.data?.version) return frontendOnlyHandler()
-    backendVersion.value = response.data.data.version
-    console.log('Backend version:', backendVersion.value)
-    handler = new SocketIOBackendHandler(handlerParameters)
-  })
-  .catch((e) => {
-    console.error(e)
-    frontendOnlyHandler()
-  })
+    .then((response) => {
+      console.log(response)
+      if (response.status !== 200) return frontendOnlyHandler()
+      if (!response.data?.data?.version) return frontendOnlyHandler()
+      backendVersion.value = response.data.data.version
+      console.log('Backend version:', backendVersion.value)
+      handler = new SocketIOBackendHandler(handlerParameters)
+    })
+    .catch((e) => {
+      console.error(e)
+      frontendOnlyHandler()
+    })
 
-let lastYamlCode = ''
+
 const parseYAML = (data) => {
   return jsyaml.load(data)
 }
-const isLastLineEqualsTo = (code, target) => {
-  let lines = code.trim().split('\n')
-  return lines[lines.length - 1].trim() === target
+const onFormSubmit = () => {
+  surveyModel.value.onCompleting.add((sender, options) => {
+    formData.value = sender.data
+    tabActiveName.value = 'formData'
+  });
 }
 const onCodeChange = (code) => {
+  let lastYamlCode = ''
+  let lastSurveyFormModel;
   try {
     let result = parseYAML(code)
     lastYamlCode = result
-    if (!inferencing.value) {
-      surveyJson.value = result
-      surveyModel.value = new SurveyModel(result)
-    }
+    surveyJson.value = result
+    lastSurveyFormModel = new SurveyModel(result)
+    surveyModel.value = lastSurveyFormModel
   } catch (e) {
     if (lastYamlCode) {
-      surveyJson.value = lastYamlCode
-      surveyModel.value = new SurveyModel(lastYamlCode)
+      if (lastYamlCode) {
+        surveyJson.value = lastYamlCode
+      }
+      if (lastSurveyFormModel) {
+        surveyModel.value = lastSurveyFormModel
+      }
       lastYamlCode = null
+      lastSurveyFormModel = null
     }
+  } finally {
+    onFormSubmit()
+    reloadKey.value += 1
+    nextTick().then(
+        () => {
+          const target = document.querySelector(".sd-navigation__complete-btn");
+          if (!target) return
+          try {
+            target.scrollIntoView({behavior: 'instant'});
+          } catch (e) {
+          }
+        }
+    )
   }
-  // Scroll to the bottom of CodeMirror
-  if (!inferencing.value) return
-  myCm.value.cminstance.scrollTo(0, myCm.value.cminstance.getScrollInfo().height)
 }
-
+watch(ymlCode, (newCode) => debounce(onCodeChange(newCode), 500), {immediate: true})
 const handleExceed = () => {
   ElNotification({
     title: '超過上傳限制',
@@ -164,7 +196,7 @@ watch(frontendOnlyMaxPDFPages, (newVal) => {
   localStorage.setItem('maxPDFPages', newVal)
 })
 const downloadGeneratedYaml = () => {
-  let blob = new Blob([ymlCode.value], { type: 'text/plain;charset=utf-8' })
+  let blob = new Blob([ymlCode.value], {type: 'text/plain;charset=utf-8'})
   let url = window.URL.createObjectURL(blob)
   let a = document.createElement('a')
   a.href = url
@@ -173,7 +205,7 @@ const downloadGeneratedYaml = () => {
   window.URL.revokeObjectURL(url)
 }
 const downloadGeneratedJSON = () => {
-  let blob = new Blob([JSON.stringify(surveyJson.value, null, 2)], { type: 'text/plain;charset=utf-8' })
+  let blob = new Blob([JSON.stringify(surveyJson.value, null, 2)], {type: 'text/plain;charset=utf-8'})
   let url = window.URL.createObjectURL(blob)
   let a = document.createElement('a')
   a.href = url
@@ -181,7 +213,7 @@ const downloadGeneratedJSON = () => {
   a.click()
   window.URL.revokeObjectURL(url)
 }
-const adjusttabContentHeight = () => {
+const adjustTabContentHeight = () => {
   let vh = window.innerHeight
   let px = vh - 282
   if (px < 300) px = 300
@@ -191,8 +223,8 @@ const adjusttabContentHeight = () => {
   tabContentHeight.value = `${px}px` // 220px Upload + 40px Tab + 15px Margin + 5px Body Margin
 }
 onMounted(() => {
-  window.addEventListener('resize', adjusttabContentHeight)
-  adjusttabContentHeight()
+  window.addEventListener('resize', adjustTabContentHeight)
+  adjustTabContentHeight()
 })
 </script>
 <template>
@@ -201,11 +233,11 @@ onMounted(() => {
       <el-row class="operation border">
         <el-col :span="8" class="upload-container">
           <el-upload :disabled="inferencing" ref="uploadPdf" action accept=".pdf" :limit="1" :on-exceed="handleExceed"
-            :before-upload="pdfUploadLogic" :file-list="pdfFileList" :auto-upload="true"
-            :http-request="(x) => x.onSuccess({})" :show-file-list="false">
+                     :before-upload="pdfUploadLogic" :file-list="pdfFileList" :auto-upload="true"
+                     :http-request="(x) => x.onSuccess({})" :show-file-list="false">
             <div slot="trigger" class="upload">
               <img :style="inferencing ? 'cursor: not-allowed' : ''" style="width: 40px" src="./assets/upload.svg"
-                alt="" /><br />
+                   alt=""/><br/>
               <small :style="inferencing ? 'cursor: not-allowed' : ''">點擊上傳PDF</small>
             </div>
           </el-upload>
@@ -213,20 +245,20 @@ onMounted(() => {
         <el-col :span="16">
           <div style="position: absolute; top: 2px; right: 2px; z-index: 1000;">
             <el-button circle type="success"
-              @click="() => { leftColSpan <= leastColSpan ? leftColSpan = 12 : leftColSpan = leastColSpan }"
-              :icon="leftColSpan <= leastColSpan ? ArrowRight : ArrowLeft">
+                       @click="() => { leftColSpan <= leastColSpan ? leftColSpan = 12 : leftColSpan = leastColSpan }"
+                       :icon="leftColSpan <= leastColSpan ? ArrowRight : ArrowLeft">
             </el-button>
           </div>
           <div id="monitor">
             <div :class="inferencing ? 'scan' : ''"></div>
             <el-carousel v-if="pdfImageDataList" :autoplay="inferencing" :interval="3500" indicator-position="none"
-              type="card" height="220px">
+                         type="card" height="220px">
               <el-carousel-item v-for="url in pdfImageDataList" :key="url">
                 <img :src="url" :class="pdfImageDataList ? 'pdfImage' : 'hide'" alt="pdf screenshot" @click="() => {
                   imagePreviewUrl = url
                   imagePreviewDialogVisible = true
                 }
-                  " />
+                  "/>
               </el-carousel-item>
             </el-carousel>
           </div>
@@ -237,16 +269,15 @@ onMounted(() => {
           <el-tabs v-model="tabActiveName">
             <el-tab-pane label="Schema YAML" name="schemaDefYaml">
               <el-button class="tab-button" type="primary" @click="downloadGeneratedYaml">
-                <img style="width: 20px" src="./assets/download.svg" alt="download button" />&nbsp;下載
+                <img style="width: 20px" src="./assets/download.svg" alt="download button"/>&nbsp;下載
               </el-button>
               <div>
-                <Codemirror ref="myCm" v-model:value="ymlCode" :options="cmOptions" :height="tabContentHeight"
-                  @change="onCodeChange" />
+                <Codemirror ref="myCm" v-model:value="ymlCode" :options="cmOptions" :height="tabContentHeight"/>
               </div>
             </el-tab-pane>
             <el-tab-pane label="Schema JSON" name="schemaDefJson">
               <el-button class="tab-button" type="primary" @click="downloadGeneratedJSON">
-                <img style="width: 20px" src="./assets/download.svg" alt="download button" />&nbsp;下載
+                <img style="width: 20px" src="./assets/download.svg" alt="download button"/>&nbsp;下載
               </el-button>
               <div name="tabContent" class="overflow-auto">
                 <pre @click="selectText($event.target)">{{ surveyJson }}</pre>
@@ -260,20 +291,26 @@ onMounted(() => {
             <el-tab-pane label="Settings" name="settings">
               <div name="tabContent" class="overflow-auto">
                 <p>
-                  &nbsp;&nbsp;Use AI Model:<br />
+                  &nbsp;&nbsp;LLM Model: <br>
                   <span style="display: flex; justify-content: center">
-                    <el-switch v-model="isMock" active-text="Mocked" inactive-text="Real" />
+                    <el-tag type="success">{{ useModel}}</el-tag>
                   </span>
                 </p>
                 <p>
-                  &nbsp;&nbsp;OpenAI Image Detail:<br />
+                  &nbsp;&nbsp;Use AI Model:<br/>
                   <span style="display: flex; justify-content: center">
-                    <el-switch v-model="isDetailHigh" active-text="High" inactive-text="Low" />
+                    <el-switch v-model="isMock" active-text="Mocked" inactive-text="Real"/>
+                  </span>
+                </p>
+                <p>
+                  &nbsp;&nbsp;OpenAI Image Detail:<br/>
+                  <span style="display: flex; justify-content: center">
+                    <el-switch v-model="isDetailHigh" active-text="High" inactive-text="Low"/>
                   </span>
                 </p>
                 <Transition>
                   <p v-show="frontendOnly && !isMock">
-                    &nbsp;&nbsp;OpenAI API Key (for Frontend Only Mode):<br />
+                    &nbsp;&nbsp;OpenAI API Key (for Frontend Only Mode):<br/>
                     <span style="display: flex; justify-content: center">
                       <span style="
                           display: flex;
@@ -283,13 +320,13 @@ onMounted(() => {
                           margin-top: 5px;
                         ">
                         <el-input id="apiKey" type="password" v-model="OpenAPIKey"
-                          placeholder="OpenAI API Key: sk-....." />
+                                  placeholder="OpenAI API Key: sk-....."/>
                         <small style="color: rgba(0, 0, 0, 0.7); margin-top: 2px">
                           Your key <b>MUST</b> have access to
                           <a href="https://platform.openai.com/docs/guides/vision" target="_blank">GPT-4 Vision</a>, for
                           details you may refer to the trouble shooting guide from the
                           <a href="https://github.com/abi/screenshot-to-code/blob/main/Troubleshooting.md"
-                            target="_blank">screenshot-to-code</a>
+                             target="_blank">screenshot-to-code</a>
                           repository.
                         </small>
                         <small style="color: rgba(200, 0, 0, 0.7); margin-top: 2px">
@@ -304,24 +341,24 @@ onMounted(() => {
                 </Transition>
                 <Transition>
                   <p v-show="frontendOnly && !isMock">
-                    &nbsp;&nbsp;Max PDF Pages:<br />
+                    &nbsp;&nbsp;Max PDF Pages:<br/>
                     <span style="display: flex; justify-content: center">
-                      <el-input-number v-model="frontendOnlyMaxPDFPages" :min="1" :max="10" />
+                      <el-input-number v-model="frontendOnlyMaxPDFPages" :min="1" :max="10"/>
                     </span>
                   </p>
                 </Transition>
                 <p>
-                  &nbsp;&nbsp;Version Information:<br />
+                  &nbsp;&nbsp;Version Information:<br/>
                   <span style="display: flex; justify-content: space-evenly">
                     <el-tag class="ml-2" type="success">Frontend: {{ frontendVersion }}</el-tag>
                     <el-tag v-show="!frontendOnly" class="ml-2" type="success">Backend: {{ backendVersion }}</el-tag>
                   </span>
                 </p>
                 <p>
-                  &nbsp;&nbsp;Source Code on Github:<br />
+                  &nbsp;&nbsp;Source Code on Github:<br/>
                   <span style="display: flex; justify-content: center">
                     <a target="_blank" href="https://github.com/nathanfhh/Digital-Form-with-GPT4-Vision-API">
-                      <img style="margin-top: 2px; width: 40px" src="./assets/github-mark.svg" alt="github button" />
+                      <img style="margin-top: 2px; width: 40px" src="./assets/github-mark.svg" alt="github button"/>
                     </a>
                   </span>
                 </p>
@@ -332,12 +369,12 @@ onMounted(() => {
       </el-row>
     </el-col>
     <el-col class="border" :span="24 - leftColSpan" style="overflow-y: auto; height: calc(100vh - 6px)">
-      <Survey :model="surveyModel" @complete="formData = surveyModel.data" />
+      <SurveyComponent :model="surveyModel" :key="reloadKey"/>
     </el-col>
   </el-row>
   <el-dialog v-model="imagePreviewDialogVisible" title="PDF Image Preview" style="z-index: 10000" :width="'93vw'">
     <div style="display: flex; justify-content: center">
-      <img :src="imagePreviewUrl" alt="image preview" style="max-width: 90vw" />
+      <img :src="imagePreviewUrl" alt="image preview" style="max-width: 90vw"/>
     </div>
   </el-dialog>
 </template>
