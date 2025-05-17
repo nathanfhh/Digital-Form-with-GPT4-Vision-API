@@ -1,6 +1,6 @@
 import * as pdfjs from 'pdfjs-dist/build/pdf.mjs'
 pdfjs.GlobalWorkerOptions.workerSrc =
-  'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.10.38/pdf.worker.mjs'
+  'https://cdn.jsdelivr.net/npm/pdfjs-dist@5.2.133/build/pdf.worker.mjs'
 import { ElNotification } from 'element-plus'
 
 const renderPage = (page) =>
