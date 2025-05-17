@@ -331,18 +331,16 @@ onMounted(() => {
                         <el-input id="apiKey" type="password" v-model="OpenAPIKey"
                                   placeholder="OpenAI API Key: sk-....."/>
                         <small style="color: rgba(0, 0, 0, 0.7); margin-top: 2px">
-                          Your key <b>MUST</b> have access to
-                          <a href="https://platform.openai.com/docs/guides/vision" target="_blank">GPT-4 Vision</a>, for
-                          details you may refer to the trouble shooting guide from the
-                          <a href="https://github.com/abi/screenshot-to-code/blob/main/Troubleshooting.md"
-                             target="_blank">screenshot-to-code</a>
-                          repository.
+                          Your key <i>MUST</i> have access to
+                          <a href="https://openai.com/index/gpt-4-1/" target="_blank">GPT-4.1</a> in order to work.
                         </small>
                         <small style="color: rgba(200, 0, 0, 0.7); margin-top: 2px">
                           Entering credentials on the frontend may expose them to threat actors. For
-                          security, entries are not saved and users is recommended to
+                          security, users is recommended to
                           <a href="https://platform.openai.com/api-keys" target="_blank">revoked</a>
                           the key after potential exposure.
+                          <br>
+                          The API key will be stored in LocalStorage. If you're using a public or shared computer, make sure to clear the input above and delete the key from LocalStorage before leaving.
                         </small>
                       </span>
                     </span>
