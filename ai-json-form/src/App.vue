@@ -1,6 +1,8 @@
 <script setup>
-import { createAjvInstance } from './ajvVueForm.js'
 import { ref, watch, defineAsyncComponent, onMounted } from 'vue'
+import { SurveyModel } from 'survey-core'
+import { Survey } from 'survey-vue3-ui'
+import 'survey-core/defaultV2.min.css'
 
 import jsyaml from 'js-yaml'
 import {
@@ -29,13 +31,12 @@ import { handlers } from './handler'
 import { version as fontendVersion } from '../package.json'
 
 window.jsyaml = jsyaml
-const VueForm = defineAsyncComponent(() => import('@lljj/vue3-form-element'))
 const Codemirror = defineAsyncComponent(() => import('codemirror-editor-vue3'))
-const schema = ref(basicSchema)
+const surveyJson = ref(basicSchema)
+const surveyModel = ref(new SurveyModel(surveyJson.value))
 const formData = ref()
-const ajv = createAjvInstance()
 const cmOptions = ref(codeMirrorConfig)
-const ymlCode = ref(jsyaml.dump(schema.value) || '')
+const ymlCode = ref(jsyaml.dump(surveyJson.value) || '')
 const myCm = ref()
 const pdfFileList = ref([])
 const pdfImageDataList = ref([])
@@ -43,7 +44,6 @@ const inferencing = ref(false)
 const tabActiveName = ref('schemaDefYaml')
 const isMock = ref(localStorage.getItem('isMock') === 'true')
 const isDetailHigh = ref(localStorage.getItem('isDetailHigh') === 'true')
-const schemaVersion = ref(0)
 const tabContentHeight = ref('')
 const frontendOnly = ref(false)
 const OpenAPIKey = ref('')
@@ -61,7 +61,6 @@ let handler = null
 let handlerParameters = {
   inferencing: inferencing,
   ymlCode: ymlCode,
-  schemaVersion: schemaVersion,
   pdfImageDataList: pdfImageDataList,
   isDetailHigh: isDetailHigh,
   isMock: isMock,
@@ -108,18 +107,15 @@ const isLastLineEqualsTo = (code, target) => {
 const onCodeChange = (code) => {
   try {
     let result = parseYAML(code)
-    ajv.compile(result) // make the error happen to trigger catch block to sync the data to UI
-    lastYamlCode = result // make sure the lastYamlCode is always valid
+    lastYamlCode = result
     if (!inferencing.value) {
-      // manually change the code
-      schema.value = result
+      surveyJson.value = result
+      surveyModel.value = new SurveyModel(result)
     }
   } catch (e) {
-    ajv.errors = []
-    if (lastYamlCode && !isLastLineEqualsTo(code, 'items:')) {
-      // the VueForm will failed to the type of array not defining items
-      console.log('syncContent', lastYamlCode)
-      schema.value = lastYamlCode
+    if (lastYamlCode) {
+      surveyJson.value = lastYamlCode
+      surveyModel.value = new SurveyModel(lastYamlCode)
       lastYamlCode = null
     }
   }
@@ -177,7 +173,7 @@ const downloadGeneratedYaml = () => {
   window.URL.revokeObjectURL(url)
 }
 const downloadGeneratedJSON = () => {
-  let blob = new Blob([JSON.stringify(schema.value, null, 2)], { type: 'text/plain;charset=utf-8' })
+  let blob = new Blob([JSON.stringify(surveyJson.value, null, 2)], { type: 'text/plain;charset=utf-8' })
   let url = window.URL.createObjectURL(blob)
   let a = document.createElement('a')
   a.href = url
@@ -253,7 +249,7 @@ onMounted(() => {
                 <img style="width: 20px" src="./assets/download.svg" alt="download button" />&nbsp;下載
               </el-button>
               <div name="tabContent" class="overflow-auto">
-                <pre @click="selectText($event.target)">{{ schema }}</pre>
+                <pre @click="selectText($event.target)">{{ surveyJson }}</pre>
               </div>
             </el-tab-pane>
             <el-tab-pane label="Form Data" name="formData">
@@ -336,7 +332,7 @@ onMounted(() => {
       </el-row>
     </el-col>
     <el-col class="border" :span="24 - leftColSpan" style="overflow-y: auto; height: calc(100vh - 6px)">
-      <VueForm :key="schemaVersion" v-model="formData" :schema="schema"></VueForm>
+      <Survey :model="surveyModel" @complete="formData = surveyModel.data" />
     </el-col>
   </el-row>
   <el-dialog v-model="imagePreviewDialogVisible" title="PDF Image Preview" style="z-index: 10000" :width="'93vw'">
