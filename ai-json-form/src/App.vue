@@ -354,7 +354,13 @@ const switchModel = (modelName) => {
                                   placeholder="OpenAI API Key: sk-....."/>
                         <small style="color: rgba(0, 0, 0, 0.7); margin-top: 2px">
                           Your key <i>MUST</i> have access to
-                          <a href="https://openai.com/index/gpt-4-1/" target="_blank">GPT-4.1</a> in order to work.
+                          <el-tag
+                              v-for="modelName in Object.keys(llmModelConfigs)"
+                              :type="modelName === llmModelUsing ? 'success' : 'info'"
+                              @click="switchModel(modelName)"
+                              style="margin-left: 15px;"
+                          >{{ modelName }}</el-tag>
+                          in order to work.
                         </small>
                         <small style="color: rgba(200, 0, 0, 0.7); margin-top: 2px">
                           Entering credentials on the frontend may expose them to threat actors. For
