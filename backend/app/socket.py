@@ -49,7 +49,12 @@ def upload_pdf_and_generate_yaml(data):
         "socket_emit_private": socket_emit_private,
         "notify_frontend": notify_frontend,
     }
-    full_response_and_usage = inference(configs, callables, is_mock=data.get("is_mock", False) is True)
+    full_response_and_usage = inference(
+        data['model_configs'],
+        configs,
+        callables,
+        is_mock=data.get("is_mock", False) is True
+    )
     socket_emit_private({
         "cmd": "ai_response_done",
         "data": full_response_and_usage['full_response'],

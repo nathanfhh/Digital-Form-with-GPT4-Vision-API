@@ -13,7 +13,8 @@ CURRENT_DIR = Path(__file__).absolute().parent
 with open(CURRENT_DIR / "mock.txt", "r") as mock_file:
     MOCKED_RESPONSE = mock_file.readlines()
 
-SYSTEM_PROMPT = (Path(__file__).absolute().parent.parent.parent / "ai-json-form/src/handler/frontend/promptTemplate.md").read_text()
+SYSTEM_PROMPT = (Path(
+    __file__).absolute().parent.parent.parent / "ai-json-form/src/handler/frontend/promptTemplate.md").read_text()
 
 USER_PROMPT = """
 Generate YAML definition file from screenshots of a paper form using the schema defined by SurveyJS.
@@ -54,22 +55,26 @@ def delayed_iterator(data: list):
         time.sleep(0.1)
 
 
-def stream_openai_response(messages, callables: dict[str, Callable], is_mock):
+def stream_openai_response(model_configs, messages, callables: dict[str, Callable], is_mock):
     if is_mock:
         response = delayed_iterator(MOCKED_RESPONSE)
     else:
+        params = {
+            "model": model_configs['model_use'],
+            "messages": messages,
+            "stream": True,
+            "timeout": 600,
+            "max_tokens": 8192,
+            "temperature": 0,
+            "stream_options": {
+                "include_usage": True
+            }
+        }
+        if model_configs['is_reasoning']:
+            for to_remove in ["temperature", "max_tokens"]:
+                del params[to_remove]
         try:
-            response = create_openai_client().chat.completions.create(**{
-                "model": USE_MODEL,
-                "messages": messages,
-                "stream": True,
-                "timeout": 600,
-                "max_tokens": 8192,
-                "temperature": 0,
-                "stream_options": {
-                    "include_usage": True
-                }
-            })
+            response = create_openai_client().chat.completions.create(**params)
         except Exception as e:
             logging.error("OpenAI API Error", exc_info=e)
             callables['notify_frontend'](f"OpenAI API Error", type_="error")
@@ -130,7 +135,7 @@ def generate_prompt(configs: dict):
     ]
 
 
-def inference(configs: dict, callables, is_mock=True):
+def inference(model_configs, configs: dict, callables, is_mock=True):
     img_data_url = [
         get_image_url(configs["runtime_dir"] / f"{configs['session']}-{i}.jpg")
         for i in range(configs["image_count"])
@@ -138,5 +143,5 @@ def inference(configs: dict, callables, is_mock=True):
     configs["img_data_url"] = img_data_url
     callables['socket_emit_private']({"cmd": "pdf_screenshot", "data": img_data_url})
     return stream_openai_response(
-        generate_prompt(configs), callables, is_mock
+        model_configs, generate_prompt(configs), callables, is_mock
     )
