@@ -2,6 +2,7 @@ import {ElNotification} from 'element-plus'
 import {io} from 'socket.io-client'
 
 import {BaseHandler} from './base.js'
+import {llmModelConfigs} from "./frontend/openai.js";
 
 export class SocketIOBackendHandler extends BaseHandler {
     constructor(args) {
@@ -54,7 +55,11 @@ export class SocketIOBackendHandler extends BaseHandler {
         this.socketIO.emit('upload_pdf', {
             data: pdfFile,
             is_mock: isMock,
-            is_detail_high: isDetailHigh
+            is_detail_high: isDetailHigh,
+            model_configs: {
+                model_use: this.modelUse.value,
+                is_reasoning: llmModelConfigs[this.modelUse.value].is_reasoning
+            },
         })
     }
 }

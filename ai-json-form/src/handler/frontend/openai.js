@@ -37,20 +37,35 @@ pages:
     title: Telephone
     inputType: tel
 `
-const priceMapper = {
+export const llmModelConfigs = {
     "gpt-4.1": {
         price: {
             completion_tokens: 8 / 1e6,
             prompt_tokens: 2 / 1e6
-        }
-    }
+        },
+        is_reasoning: false
+    },
+    "o4-mini": {
+        price: {
+            completion_tokens: 4.4 / 1e6,
+            prompt_tokens: 1.1 / 1e6
+        },
+        is_reasoning: true
+    },
+    "gpt-4o": {
+        price: {
+            completion_tokens: 10 / 1e6,
+            prompt_tokens: 2.5 / 1e6
+        },
+        is_reasoning: false
+    },
 }
-export const useModel = "gpt-4.1"
+export const defaultModelUse = Object.keys(llmModelConfigs)[0]
 
-export function calculatePrice(usage) {
+export function calculatePrice(handlerObj, usage) {
     if (!usage) return null
     console.log("In calculatePrice", usage)
-    const currentModel = priceMapper[useModel]
+    const currentModel = llmModelConfigs[handlerObj.modelUse.value]
     const price = (
         usage.completion_tokens * currentModel.price.completion_tokens +
         usage.prompt_tokens * currentModel.price.prompt_tokens
@@ -77,8 +92,8 @@ export async function inference(prompts, handlerObj) {
         apiKey: handlerObj.apiKey.value.trim(),
         dangerouslyAllowBrowser: true
     })
-    const stream = await openai.chat.completions.create({
-        model: useModel,
+    const params = {
+        model: handlerObj.modelUse.value,
         messages: prompts,
         stream: true,
         max_tokens: 8192,
@@ -86,7 +101,14 @@ export async function inference(prompts, handlerObj) {
         stream_options: {
             include_usage: true
         }
-    })
+    }
+    const modelConfig = llmModelConfigs[handlerObj.modelUse.value]
+    if (modelConfig.is_reasoning) {
+        ["max_tokens", "temperature"].forEach((key) => {
+            delete params[key]
+        })
+    }
+    const stream = await openai.chat.completions.create(params)
     let fullResponse = ''
     let buffer = ''
     let usage = null;

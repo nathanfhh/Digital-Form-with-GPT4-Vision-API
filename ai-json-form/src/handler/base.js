@@ -11,7 +11,8 @@ export class BaseHandler {
             pdfImageDataList,
             isDetailHigh,
             isMock,
-            tabActiveName
+            tabActiveName,
+            modelUse
         } = parameters
         this.name = name || 'BaseHandler'
         this.inferencing = inferencing
@@ -20,6 +21,7 @@ export class BaseHandler {
         this.isDetailHigh = isDetailHigh
         this.isMock = isMock
         this.tabActiveName = tabActiveName
+        this.modelUse = modelUse
     }
 
     handle_ai_response(yamlCodeChunk) {
@@ -32,7 +34,7 @@ export class BaseHandler {
         console.log(`${this.name}-handle_ai_response_done`)
         this.inferencing.value = false
         if (!fullYamlCode) return
-        const totalPrice = calculatePrice(usage)
+        const totalPrice = calculatePrice(this, usage)
         ElNotification({
             title: 'AI 處理完成',
             message: 'AI 處理完成',
