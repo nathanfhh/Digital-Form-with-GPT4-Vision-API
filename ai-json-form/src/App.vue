@@ -125,6 +125,7 @@ const onCodeChange = (code) => {
   let lastSurveyFormModel;
   try {
     const result = parseYAML(code)
+    result.questionsOnPageMode = "singlePage"
     lastYamlCode = result
     surveyJson.value = result
     lastSurveyFormModel = new SurveyModel(result)
@@ -157,7 +158,7 @@ const onCodeChange = (code) => {
       )
     }
   }
-  if (!inferencing || !myCm.value) return
+  if (!inferencing.value || !myCm.value) return
   try {
     myCm.value.cminstance.scrollTo(0, myCm.value.cminstance.getScrollInfo().height)
   } catch (e) {
@@ -295,6 +296,7 @@ onMounted(() => {
             <el-tab-pane label="Form Data" name="formData">
               <div name="tabContent" class="overflow-auto">
                 <pre @click="selectText($event.target)">{{ formData }}</pre>
+                <h3 v-show="!formData || Object.keys(formData).length === 0">提交表單後答案將呈現於此處</h3>
               </div>
             </el-tab-pane>
             <el-tab-pane label="Settings" name="settings">
