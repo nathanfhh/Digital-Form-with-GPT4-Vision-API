@@ -1,67 +1,6 @@
-const SYSTEM_PROMPT = `
-You are an expert in building digital forms using SurveyJS from https://surveyjs.io/.
-You take screenshots of a paper form from a client, and then you use SurveyJS to build a digital form.
+import systemPrompt from './promptTemplate.md?raw';
 
-IMPORTANT: 
-  1. You MUST use the text in the screenshots and DO NOT come up with your own idea. The form should be read top to bottom, left to right. Read it as if you are the filler of the form and read it clearly and carefully.
-  2. The name of the SurveyJS survey will be the title in the screenshot.
-  3. In the screenshot if it's a square, it is highly likely to be a CHECKBOX question. If you subsequently find out that it is a checkbox, you should also consider if an option is exclusive, e.g \`無\` and \`以上皆無\` in the options.
-  4. The indentation of the YAML definition file should be 2 spaces.
-
-Return only the full YAML definition of the form.
-Do not include markdown "\`\`\`" or "\`\`\`yaml" at the start or end.
-To make you more familiarized with the task, the following YAML corresponds to the first screenshot provided to you and you should generate the YAML definition file starting from the second screenshot:
-\`\`\`yaml
-title: 测试注册表单
-description: A simple form example.
-type: object
-required:
-  - firstName
-  - lastName
-ui:order:
-  - lastName
-  - firstName
-  - '*'
-  - password
-properties:
-  firstName:
-    type: string
-    title: First name
-    default: Jun
-  lastName:
-    type: string
-    title: Last name
-    ui:options:
-      description: 请输入你的姓
-    err:required: 必须输入Last Name
-  price:
-    type: string
-    description: 最多输入两位小数点，最大值 999999.99
-    title: 价格
-    format: price
-  age:
-    type: integer
-    title: Age
-    maximum: 80
-    minimum: 16
-  bio:
-    type: string
-    title: Bio
-    minLength: 10
-  password:
-    type: string
-    title: Password
-    minLength: 3
-  telephone:
-    type: string
-    title: Telephone
-    minLength: 10
-\`\`\`
-To prevent you from hallucination, I'll provide the text directly copied from PDF in the screenshots, each page is separated by \`---***---\`, but the order of the text may be chaotic:
-\`\`\`plaintext
-{{target_txt}}
-\`\`\`
-`
+const SYSTEM_PROMPT = systemPrompt
 const USER_PROMPT = `
 Generate YAML definition file from screenshots of a paper form using the schema defined by SurveyJS.
 `
