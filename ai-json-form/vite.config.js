@@ -25,7 +25,6 @@ export default defineConfig(({ mode }) => {
             'pdfjs-dist': ["pdfjs-dist"],
             'codemirror': ["codemirror"],
             'openai': ["openai"],
-            'ajv': ["ajv"],
           },
         },
       },
