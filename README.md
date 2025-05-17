@@ -83,10 +83,10 @@ echo "OPENAI_API_KEY=YOUR_API_KEY" > .env
 echo "OPENAI_ORG=YOUR_ORG" >> .env
 ```
 
-2. Run the docker-compose
+2. Run the `docker compose` command
 
 ```sh
-docker-compose up --build
+docker compose up --build
 ```
 
 3. Open the browser and visit `http://localhost:8080/aijsv/`
