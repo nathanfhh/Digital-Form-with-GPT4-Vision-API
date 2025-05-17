@@ -21,6 +21,7 @@ Before reading the following, make sure you are aware of latest SurveyJS form sy
 12. Question Names and values for options MUST follow Python or JavaScript naming style and use only English and numbers with no spaces or special characters.
 13. Once the form is completed, make sure to re-check and validate your YAML definition file with the screenshots provided to you.
 14. `name` for each page and question must be unique.
+15. Your common pitfalls: there is no `rows` under `matrixdynamic` question type, what you're looking for is `choices`.
 
 ## Response
 
