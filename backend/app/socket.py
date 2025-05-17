@@ -49,11 +49,14 @@ def upload_pdf_and_generate_yaml(data):
         "socket_emit_private": socket_emit_private,
         "notify_frontend": notify_frontend,
     }
+    full_response_and_usage = inference(configs, callables, is_mock=data.get("is_mock", False) is True)
     socket_emit_private({
         "cmd": "ai_response_done",
-        "data": inference(configs, callables, is_mock=data.get("is_mock", False) is True)
+        "data": full_response_and_usage['full_response'],
+        "usage": full_response_and_usage['usage']
     })
     cleanup_intermediate_files(session)
+    return None
 
 
 def cleanup_intermediate_files(session):
