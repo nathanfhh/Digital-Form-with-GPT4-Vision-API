@@ -1,6 +1,6 @@
 import * as pdfjs from 'pdfjs-dist/build/pdf.mjs'
 pdfjs.GlobalWorkerOptions.workerSrc =
-  'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.0.269/pdf.worker.mjs'
+  'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.10.38/pdf.worker.mjs'
 import { ElNotification } from 'element-plus'
 
 const renderPage = (page) =>
@@ -34,13 +34,13 @@ export function extractPDF(pdfUrl, handlerObj) {
       })
       return null
     }
-    for (var currentPage = 1; currentPage <= totalPageCount; currentPage++) {
-      var page = pdf.getPage(currentPage)
-      countPromises.push(
+    for (let currentPage = 1; currentPage <= totalPageCount; currentPage++) {
+        const page = pdf.getPage(currentPage);
+        countPromises.push(
         page.then(async function (page) {
-          var image = await renderPage(page)
-          var textContent = page.getTextContent()
-          return textContent.then(function (text) {
+            const image = await renderPage(page);
+            const textContent = page.getTextContent();
+            return textContent.then(function (text) {
             return {
               txt: text.items
                 .map(function (s) {
