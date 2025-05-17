@@ -124,7 +124,7 @@ const onCodeChange = (code) => {
   let lastYamlCode = ''
   let lastSurveyFormModel;
   try {
-    let result = parseYAML(code)
+    const result = parseYAML(code)
     lastYamlCode = result
     surveyJson.value = result
     lastSurveyFormModel = new SurveyModel(result)
@@ -143,19 +143,27 @@ const onCodeChange = (code) => {
   } finally {
     onFormSubmit()
     reloadKey.value += 1
-    nextTick().then(
-        () => {
-          const target = document.querySelector(".sd-navigation__complete-btn");
-          if (!target) return
-          try {
-            target.scrollIntoView({behavior: 'instant'});
-          } catch (e) {
+    if (inferencing.value) {
+      nextTick().then(
+          () => {
+            const target = document.querySelector(".sd-navigation__complete-btn");
+            if (!target) return
+            try {
+              console.log("Scroll surveyjs")
+              target.scrollIntoView({behavior: 'instant', block: 'end'});
+            } catch (e) {
+            }
           }
-        }
-    )
+      )
+    }
+  }
+  if (!inferencing || !myCm.value) return
+  try {
+    myCm.value.cminstance.scrollTo(0, myCm.value.cminstance.getScrollInfo().height)
+  } catch (e) {
   }
 }
-watch(ymlCode, (newCode) => debounce(onCodeChange(newCode), 500), {immediate: true})
+onCodeChange(ymlCode.value)
 const handleExceed = () => {
   ElNotification({
     title: '超過上傳限制',
@@ -272,7 +280,8 @@ onMounted(() => {
                 <img style="width: 20px" src="./assets/download.svg" alt="download button"/>&nbsp;下載
               </el-button>
               <div>
-                <Codemirror ref="myCm" v-model:value="ymlCode" :options="cmOptions" :height="tabContentHeight"/>
+                <Codemirror ref="myCm" v-model:value="ymlCode" :options="cmOptions" :height="tabContentHeight"
+                            @change="onCodeChange"/>
               </div>
             </el-tab-pane>
             <el-tab-pane label="Schema JSON" name="schemaDefJson">
@@ -293,7 +302,7 @@ onMounted(() => {
                 <p>
                   &nbsp;&nbsp;LLM Model: <br>
                   <span style="display: flex; justify-content: center">
-                    <el-tag type="success">{{ useModel}}</el-tag>
+                    <el-tag type="success">{{ useModel }}</el-tag>
                   </span>
                 </p>
                 <p>
