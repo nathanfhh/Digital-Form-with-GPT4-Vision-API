@@ -12,7 +12,8 @@ export class BaseHandler {
             isDetailHigh,
             isMock,
             tabActiveName,
-            modelUse
+            modelUse,
+            customModelConfigs
         } = parameters
         this.name = name || 'BaseHandler'
         this.inferencing = inferencing
@@ -22,6 +23,7 @@ export class BaseHandler {
         this.isMock = isMock
         this.tabActiveName = tabActiveName
         this.modelUse = modelUse
+        this.customModelConfigs = customModelConfigs
     }
 
     handle_ai_response(yamlCodeChunk) {

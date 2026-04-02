@@ -2,7 +2,7 @@ import {ElNotification} from 'element-plus'
 import {io} from 'socket.io-client'
 
 import {BaseHandler} from './base.js'
-import {llmModelConfigs} from "./frontend/openai.js";
+import {getModelConfig} from "./frontend/openai.js";
 
 export class SocketIOBackendHandler extends BaseHandler {
     constructor(args) {
@@ -58,7 +58,7 @@ export class SocketIOBackendHandler extends BaseHandler {
             is_detail_high: isDetailHigh,
             model_configs: {
                 model_use: this.modelUse.value,
-                is_reasoning: llmModelConfigs[this.modelUse.value].is_reasoning
+                is_reasoning: getModelConfig(this.modelUse.value, this.customModelConfigs?.value).is_reasoning
             },
         })
     }

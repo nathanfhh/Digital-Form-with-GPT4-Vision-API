@@ -37,6 +37,8 @@ pages:
     title: Telephone
     inputType: tel
 `
+export const customModelsStorageKey = 'customLlmModelConfigs'
+
 export const llmModelConfigs = {
     "gpt-4.1": {
         price: {
@@ -61,11 +63,50 @@ export const llmModelConfigs = {
     },
 }
 export const defaultModelUse = Object.keys(llmModelConfigs)[0]
+const defaultFallbackModelConfig = {
+    price: null,
+    is_reasoning: false
+}
+
+export function getStoredCustomModelConfigs() {
+    if (typeof localStorage === 'undefined') return {}
+    try {
+        const rawValue = localStorage.getItem(customModelsStorageKey)
+        if (!rawValue) return {}
+        const parsedValue = JSON.parse(rawValue)
+        return parsedValue && typeof parsedValue === 'object' ? parsedValue : {}
+    } catch (error) {
+        console.error('Failed to parse custom model configs from localStorage.', error)
+        return {}
+    }
+}
+
+export function normalizeModelConfigs(customModelConfigs = {}) {
+    const sanitizedCustomConfigs = Object.entries(customModelConfigs).reduce((configs, [modelName, config]) => {
+        const normalizedName = modelName.trim()
+        if (!normalizedName) return configs
+        configs[normalizedName] = {
+            ...defaultFallbackModelConfig,
+            ...(config || {}),
+            is_reasoning: Boolean(config?.is_reasoning)
+        }
+        return configs
+    }, {})
+    return {
+        ...llmModelConfigs,
+        ...sanitizedCustomConfigs
+    }
+}
+
+export function getModelConfig(modelName, customModelConfigs = {}) {
+    return normalizeModelConfigs(customModelConfigs)[modelName] || defaultFallbackModelConfig
+}
 
 export function calculatePrice(handlerObj, usage) {
     if (!usage) return null
     console.log("In calculatePrice", usage)
-    const currentModel = llmModelConfigs[handlerObj.modelUse.value]
+    const currentModel = getModelConfig(handlerObj.modelUse.value, handlerObj.customModelConfigs?.value)
+    if (!currentModel.price) return null
     const price = (
         usage.completion_tokens * currentModel.price.completion_tokens +
         usage.prompt_tokens * currentModel.price.prompt_tokens
@@ -102,7 +143,7 @@ export async function inference(prompts, handlerObj) {
             include_usage: true
         }
     }
-    const modelConfig = llmModelConfigs[handlerObj.modelUse.value]
+    const modelConfig = getModelConfig(handlerObj.modelUse.value, handlerObj.customModelConfigs?.value)
     if (modelConfig.is_reasoning) {
         ["max_tokens", "temperature"].forEach((key) => {
             delete params[key]

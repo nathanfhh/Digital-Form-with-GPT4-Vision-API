@@ -1,5 +1,5 @@
 <script setup>
-import {ref, watch, defineAsyncComponent, onMounted, nextTick} from 'vue'
+import {ref, watch, defineAsyncComponent, onMounted, nextTick, computed} from 'vue'
 import {SurveyModel} from 'survey-core'
 import 'survey-core/survey-core.css';
 
@@ -17,7 +17,8 @@ import {
   ElTabs,
   ElButton,
   ElTag,
-  ElDialog
+  ElDialog,
+  ElCheckbox
 } from 'element-plus'
 import {
   ArrowLeft,
@@ -28,7 +29,13 @@ import {codeMirrorConfig} from './codeMirror.js'
 import {getVersion} from './axios.js'
 import {handlers} from './handler'
 import {version as fontendVersion} from '../package.json'
-import {defaultModelUse, llmModelConfigs} from "./handler/frontend/openai.js";
+import {
+  customModelsStorageKey,
+  defaultModelUse,
+  getStoredCustomModelConfigs,
+  llmModelConfigs,
+  normalizeModelConfigs
+} from "./handler/frontend/openai.js";
 
 window.jsyaml = jsyaml
 const Codemirror = defineAsyncComponent(() => import('codemirror-editor-vue3'))
@@ -54,6 +61,11 @@ const imagePreviewDialogVisible = ref(false)
 const imagePreviewUrl = ref('')
 const leftColSpan = ref(12)
 const reloadKey = ref(0)
+const customModelConfigs = ref(getStoredCustomModelConfigs())
+const customModelName = ref('')
+const customModelIsReasoning = ref(false)
+const availableModelConfigs = computed(() => normalizeModelConfigs(customModelConfigs.value))
+const availableModelNames = computed(() => Object.keys(availableModelConfigs.value))
 const llmModelUsing = ref(localStorage.getItem("llmModelUsing") || defaultModelUse)
 
 watch(OpenAPIKey, (newVal) => {
@@ -80,7 +92,8 @@ let handlerParameters = {
   isDetailHigh: isDetailHigh,
   isMock: isMock,
   tabActiveName: tabActiveName,
-  modelUse: llmModelUsing
+  modelUse: llmModelUsing,
+  customModelConfigs: customModelConfigs
 }
 
 const frontendOnlyHandler = () => {
@@ -208,6 +221,19 @@ watch(frontendOnlyMaxPDFPages, (newVal) => {
 watch(llmModelUsing, (newValue) => {
   localStorage.setItem('llmModelUsing', newValue)
 })
+watch(customModelConfigs, (newValue) => {
+  localStorage.setItem(customModelsStorageKey, JSON.stringify(newValue))
+}, {deep: true})
+
+const ensureValidModelSelection = () => {
+  if (availableModelConfigs.value[llmModelUsing.value]) return
+  llmModelUsing.value = availableModelNames.value[0] || defaultModelUse
+}
+
+watch(availableModelNames, () => {
+  ensureValidModelSelection()
+}, {immediate: true})
+
 const downloadGeneratedYaml = () => {
   let blob = new Blob([ymlCode.value], {type: 'text/plain;charset=utf-8'})
   let url = window.URL.createObjectURL(blob)
@@ -244,6 +270,54 @@ const switchModel = (modelName) => {
   ElNotification({
     title: '模型已切換',
     message: `當前使用的模型為 ${modelName}`,
+    type: 'success',
+    duration: 2000
+  })
+}
+
+const isCustomModel = (modelName) => {
+  return Object.prototype.hasOwnProperty.call(customModelConfigs.value, modelName)
+}
+
+const addCustomModel = () => {
+  const modelName = customModelName.value.trim()
+  if (!modelName) {
+    ElNotification({
+      title: '模型名稱不可為空',
+      message: '請輸入模型名稱',
+      type: 'warning',
+      duration: 2000
+    })
+    return
+  }
+  if (llmModelConfigs[modelName]) {
+    ElNotification({
+      title: '模型已存在',
+      message: `${modelName} 已經是內建模型`,
+      type: 'warning',
+      duration: 2000
+    })
+    return
+  }
+  customModelConfigs.value = {
+    ...customModelConfigs.value,
+    [modelName]: {
+      price: null,
+      is_reasoning: customModelIsReasoning.value
+    }
+  }
+  customModelName.value = ''
+  customModelIsReasoning.value = false
+  switchModel(modelName)
+}
+
+const removeCustomModel = (modelName) => {
+  const nextConfigs = {...customModelConfigs.value}
+  delete nextConfigs[modelName]
+  customModelConfigs.value = nextConfigs
+  ElNotification({
+    title: '模型已移除',
+    message: `${modelName} 已從自訂模型清單移除`,
     type: 'success',
     duration: 2000
   })
@@ -319,12 +393,41 @@ const switchModel = (modelName) => {
               <div name="tabContent" class="overflow-auto">
                 <p>
                   &nbsp;&nbsp;LLM Model: <br>
-                  <span style="display: flex; justify-content: space-around">
+                  <span style="display: flex; justify-content: space-around; gap: 8px; flex-wrap: wrap">
                     <el-tag
-                        v-for="modelName in Object.keys(llmModelConfigs)"
+                        v-for="modelName in availableModelNames"
+                        :key="modelName"
+                        :closable="isCustomModel(modelName)"
                         :type="modelName === llmModelUsing ? 'success' : 'info'"
                         @click="switchModel(modelName)"
+                        @close="removeCustomModel(modelName)"
                     >{{ modelName }}</el-tag>
+                  </span>
+                </p>
+                <p>
+                  &nbsp;&nbsp;Add Custom Model:<br/>
+                  <span style="display: flex; justify-content: center">
+                    <span style="
+                        display: flex;
+                        flex-direction: column;
+                        justify-content: center;
+                        width: 90%;
+                        margin-top: 5px;
+                        gap: 8px;
+                      ">
+                      <el-input
+                          v-model="customModelName"
+                          placeholder="例如: gpt-4.1-mini 或 gpt-4o-mini"
+                          @keyup.enter="addCustomModel"
+                      />
+                      <span style="display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap">
+                        <el-checkbox v-model="customModelIsReasoning">Reasoning Model</el-checkbox>
+                        <el-button type="primary" @click="addCustomModel">新增模型</el-button>
+                      </span>
+                      <small style="color: rgba(0, 0, 0, 0.7)">
+                        自訂模型會儲存在 LocalStorage。若是推理模型，請勾選 Reasoning Model，避免請求參數不相容。
+                      </small>
+                    </span>
                   </span>
                 </p>
                 <p>
@@ -355,7 +458,8 @@ const switchModel = (modelName) => {
                         <small style="color: rgba(0, 0, 0, 0.7); margin-top: 2px">
                           Your key <i>MUST</i> have access to
                           <el-tag
-                              v-for="modelName in Object.keys(llmModelConfigs)"
+                              v-for="modelName in availableModelNames"
+                              :key="modelName"
                               :type="modelName === llmModelUsing ? 'success' : 'info'"
                               @click="switchModel(modelName)"
                               style="margin-left: 15px;"
